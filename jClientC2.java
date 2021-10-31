@@ -218,25 +218,128 @@ public class jClientC2 {
      * reads a new message, decides what to do and sends action to simulator
      */
     public void mainLoop () {
-
+        cif.ReadSensors();
+        x0=cif.GetX();
+        y0=cif.GetY();
         while(true) {
                 cif.ReadSensors();
                 decide();
         }
     }
 
+
+     /*! In this map the center of cell (i,j), (i in 0..6, j in 0..13) is mapped to labMap[i*2][j*2].
+     *  to know if there is a wall on top of cell(i,j) (i in 0..5), check if the value of labMap[i*2+1][j*2] is space or not
+     */
+    //Array guarda informacao e imprimi mapa no fim PrintMapa
+    //Aprender a usar GPS e 
+    //bussola double = angulo
+    //cruzamento = 1 parede 3 espacos (vem de x1, vai a x2, volta, vai a x3, volta, volta para x1)
+    //beco = 3 paredes 1 espaco
+    //Canto inferior esquerdo do mapa é o (0,0)
     public void wander(boolean followBeacon) {
-        if(irSensor0>1) {
-            if(Math.max(irSensor1,irSensor2)==irSensor1) cif.DriveMotors(0.15,-0.05);
-            else cif.DriveMotors(-0.05,0.15);
+        if(x!=next[0] || y!=next[1]){ //andar em frente
+            double dist=Math.max(Math.abs(x-next[0]), Math.abs(y-next[1]));
+            if(dist<0.15)cif.DriveMotors(dist, dist);
+            cif.DriveMotors(0.15, 0.15);
         }
-        else if(irSensor1>2.1) cif.DriveMotors(0.15,0.1); //esquerda
-        else if(irSensor2>2.1) cif.DriveMotors(0.1,0.15); //direita
-        
-        else cif.DriveMotors(0.15,0.15);
+        else{
+            ordenadasAntigas.addLast(y); //y atuais adicionados à ultima posicao do array
+            abcissasAntigas.addLast(x); //x atuais adicionados à ultima posicao do array
+
+            if(deadlock()==2){
+                //-2, -10 
+                //4 -> 0 -10 | -4 -10 | -2 -8 | -2 -12
+                // x,y anteriores
+
+                if(compass==0){
+                    if(ParedeEsquerda() && ParedeDireita()) { // vai para a frente dele
+                        next[0]=x+2;
+                        next[1]=y;
+                    }else if(ParedeEsquerda() && ParedeFrente()) { // vai para a direita dele
+                        next[0]=x;
+                        next[1]=y-2;
+                    }else if(ParedeFrente() && ParedeDireita()) { // vai para esquerda dele
+                        next[0]=x;
+                        next[1]=y+2;
+                    }
+                }else if(compass==90){
+                    if(ParedeEsquerda() && ParedeDireita()) { // vai para a frente dele
+                        next[0]=x;
+                        next[1]=y+2;
+                    }else if(ParedeEsquerda() && ParedeFrente()) { // vai para a direita dele
+                        next[0]=x+2;
+                        next[1]=y;
+                    }else if(ParedeFrente() && ParedeDireita()) { // vai para esquerda dele
+                        next[0]=x-2;
+                        next[1]=y;
+                    }
+                }else if(compass==-90){
+                    if(ParedeEsquerda() && ParedeDireita()) { // vai para a frente dele
+                        next[0]=x;
+                        next[1]=y-2;
+                    }else if(ParedeEsquerda() && ParedeFrente()) { // vai para a direita dele
+                        next[0]=x-2;
+                        next[1]=y;
+                    }else if(ParedeFrente() && ParedeDireita()) { // vai para esquerda dele
+                        next[0]=x+2;
+                        next[1]=y;
+                    }
+                }else if (compass == -180 || compass ==180){
+                    if(ParedeEsquerda() && ParedeDireita()) { // vai para a frente dele
+                        next[0]=x-2;
+                        next[1]=y;
+                    }else if(ParedeEsquerda() && ParedeFrente()) { // vai para a direita dele
+                        next[0]=x;
+                        next[1]=y+2;
+                    }else if(ParedeFrente() && ParedeDireita()) { // vai para esquerda dele
+                        next[0]=x;
+                        next[1]=y-2;
+                    }
+                }
+            System.out.println("entrei x= " + next[0]+" y= "+next[1]);
+
+
+            }else if (deadlock()==3){  
+
+            }else if (deadlock()==1){ 
+
+            }
+        }
+
+/*      |
+    ----+ -----
+           x  |
+    ------    |
+ */
     }
 
+    //ver para onde e que existe caminho
+    public boolean ParedeFrente(){
+        if(irSensor0>=2.5) return true;
+        return false;
+    }
+    public boolean ParedeTras(){
+        if(irSensor3>=2.5) return true;
+        return false;
+    }
+    public boolean ParedeDireita(){
+        if(irSensor2>=2.5) return true;
+        return false;
+    }
+    public boolean ParedeEsquerda(){
+        if(irSensor1>=2.5) return true;
+        return false;
+    }
 
+    public int deadlock(){ //return 2 "normal", 3 "beco", 1 "cruzamento";
+        int c=0;
+        if(irSensor0>=2.5) c++;
+        if(irSensor1>=2.5) c++;
+        if(irSensor2>=2.5) c++;
+        if(irSensor3>=2.5) c++;
+        return c;
+    }
     /**
      * basic reactive decision algorithm, decides action based on current sensor values
      */
@@ -247,16 +350,22 @@ public class jClientC2 {
                     irSensor1 = cif.GetObstacleSensor(1);
             if(cif.IsObstacleReady(2))
                     irSensor2 = cif.GetObstacleSensor(2);
+            if(cif.IsObstacleReady(3))
+                    irSensor3 = cif.GetObstacleSensor(3);
 
             if(cif.IsCompassReady())
                     compass = cif.GetCompassSensor();
             if(cif.IsGroundReady())
-                    ground = cif.GetGroundSensor();
+                    ground = cif.GetGroundSensor(); // ver se esta num dos alvos
+            if(cif.IsGPSReady()){
+                    x = cif.GetX() - x0;//+-22
+                    y = cif.GetY() - y0;//+-13
+            }
 
             if(cif.IsBeaconReady(beaconToFollow))
                     beacon = cif.GetBeaconSensor(beaconToFollow);
 
-            System.out.println("Measures: ir0=" + irSensor0 + " ir1=" + irSensor1 + " ir2=" + irSensor2 + "\n");
+            System.out.println("Measures: ir0=" + irSensor0 + " ir1=" + irSensor1 + " ir2=" + irSensor2 + " ir3="+ irSensor3+"\n" + "bussola=" + compass + " GPS-X=" + x + " GPS-y=" + y  +"\n");
 
             //System.out.println(robName + " state " + state);
 
@@ -286,26 +395,6 @@ public class jClientC2 {
                      break;
 
             }
-
-
-            //for(int i=1; i<6; i++)
-            //  if(cif.NewMessageFrom(i))
-            //      System.out.println("Message: From " + i + " to " + robName + " : \"" + cif.GetMessageFrom(i)+ "\"");
-
-
-            //cif.Say(robName);
-
-            //if(cif.GetTime() % 2 == 0) {
-            //     cif.RequestIRSensor(0);
-            //     if(cif.GetTime() % 8 == 0 || state == State.RETURN )
-            //         cif.RequestGroundSensor();
-            //     else
-            //         cif.RequestBeaconSensor(beaconToFollow);
-            //}
-            //else {
-            //   cif.RequestIRSensor(1);
-            //   cif.RequestIRSensor(2);
-            //}
     }
 
     static void print_usage() {
@@ -321,10 +410,13 @@ public class jClientC2 {
     }
 
     private String robName;
-    private double irSensor0, irSensor1, irSensor2, compass;
+    private double irSensor0, irSensor1, irSensor2, irSensor3, compass, x,y, x0,y0;
+    private LinkedList<Double> ordenadasAntigas = new LinkedList <Double>(); 
+    private LinkedList<Double> abcissasAntigas = new LinkedList <Double> ();
     private beaconMeasure beacon;
-    private int    ground;
+    private int ground;
     private boolean collision;
+    private double next[] = new double[2];
 
     private State state;
 
