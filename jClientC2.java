@@ -17,7 +17,18 @@
     along with Foobar; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+//Pergunta professor: rodar e como meter angulos diffs nos sensores e coords gps sempre as mesmas no x0 e y0?
+//Acabar os cruzamentos 1 e 0
+//Acabar funcao rodar
+//Add funcao para guardar coordenadas das paredes 
+//funcao para se paredes sao verticais ou  horizontais
+//funcao para verificar se ja viu o mapa todo
+//funcao para ver se celula é inacessivel
+//funcao para calcular coordenadas dos limites
+//funcao para o beco, voltar para tras para a celula mais proxima
+//funcao para dar print no mapa
 
+import java.beans.PersistenceDelegate;
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -192,9 +203,9 @@ public class jClientC2 {
         jClientC2 client = new jClientC2();
 
         client.robName = robName;
-
+        double[] angles = {-90,90};
         // register robot in simulator
-        client.cif.InitRobot(robName, pos, host);
+        client.cif.InitRobot2(robName, pos, angles, host);
         client.map = map;
         client.printMap();
         
@@ -238,83 +249,192 @@ public class jClientC2 {
     //beco = 3 paredes 1 espaco
     //Canto inferior esquerdo do mapa é o (0,0)
     public void wander(boolean followBeacon) {
-        if(x!=next[0] || y!=next[1]){ //andar em frente
-            double dist=Math.max(Math.abs(x-next[0]), Math.abs(y-next[1]));
+        if(x!=next.getX() || y!=next.getY()){ //andar em frente
+            double dist=Math.max(Math.abs(x-next.getX()), Math.abs(y-next.getY()));
             if(dist<0.15)cif.DriveMotors(dist, dist);
             cif.DriveMotors(0.15, 0.15);
-        }
-        else{
-            ordenadasAntigas.addLast(y); //y atuais adicionados à ultima posicao do array
-            abcissasAntigas.addLast(x); //x atuais adicionados à ultima posicao do array
-
+            System.out.println("A caminho do next!");
+        }else{
+            CoordAntigas.add(atual); //x,y atuais adicionados à ultima posicao array
             if(deadlock()==2){
-                //-2, -10 
-                //4 -> 0 -10 | -4 -10 | -2 -8 | -2 -12
-                // x,y anteriores
-
                 if(compass==0){
                     if(ParedeEsquerda() && ParedeDireita()) { // vai para a frente dele
-                        next[0]=x+2;
-                        next[1]=y;
+                        next.setX(x+2);
+                        next.setY(y);
                     }else if(ParedeEsquerda() && ParedeFrente()) { // vai para a direita dele
-                        next[0]=x;
-                        next[1]=y-2;
+                        next.setX(x);
+                        next.setY(y-2);
+                        rodar_90();
                     }else if(ParedeFrente() && ParedeDireita()) { // vai para esquerda dele
-                        next[0]=x;
-                        next[1]=y+2;
+                        next.setX(x);
+                        next.setY(y+2);
+                        rodar90();
                     }
                 }else if(compass==90){
                     if(ParedeEsquerda() && ParedeDireita()) { // vai para a frente dele
-                        next[0]=x;
-                        next[1]=y+2;
+                        next.setX(x);
+                        next.setY(y+2);
                     }else if(ParedeEsquerda() && ParedeFrente()) { // vai para a direita dele
-                        next[0]=x+2;
-                        next[1]=y;
+                        next.setX(x+2);
+                        next.setY(y);
+                        rodar_90();
                     }else if(ParedeFrente() && ParedeDireita()) { // vai para esquerda dele
-                        next[0]=x-2;
-                        next[1]=y;
+                        next.setX(x-2);
+                        next.setY(y);
+                        rodar90();
                     }
                 }else if(compass==-90){
                     if(ParedeEsquerda() && ParedeDireita()) { // vai para a frente dele
-                        next[0]=x;
-                        next[1]=y-2;
+                        next.setX(x);
+                        next.setY(y-2);
                     }else if(ParedeEsquerda() && ParedeFrente()) { // vai para a direita dele
-                        next[0]=x-2;
-                        next[1]=y;
+                        next.setX(x-2);
+                        next.setY(y);
+                        rodar_90();
                     }else if(ParedeFrente() && ParedeDireita()) { // vai para esquerda dele
-                        next[0]=x+2;
-                        next[1]=y;
+                        next.setX(x+2);
+                        next.setY(y);
+                        rodar90();
                     }
                 }else if (compass == -180 || compass ==180){
                     if(ParedeEsquerda() && ParedeDireita()) { // vai para a frente dele
-                        next[0]=x-2;
-                        next[1]=y;
+                        next.setX(x-2);
+                        next.setY(y);
                     }else if(ParedeEsquerda() && ParedeFrente()) { // vai para a direita dele
-                        next[0]=x;
-                        next[1]=y+2;
+                        next.setX(x);
+                        next.setY(y+2);
+                        rodar_90();
                     }else if(ParedeFrente() && ParedeDireita()) { // vai para esquerda dele
-                        next[0]=x;
-                        next[1]=y-2;
+                        next.setX(x);
+                        next.setY(y-2);
+                        rodar90();
                     }
+                }else{
+                    alinhar();
                 }
-            System.out.println("entrei x= " + next[0]+" y= "+next[1]);
+            System.out.println("Coordenadas calculadas do next - x= " + next.getX()+" y= "+next.getY());
 
 
             }else if (deadlock()==3){  
-
+                
             }else if (deadlock()==1){ 
-
+                if (ParedeFrente()){
+                    if(CoordAntigas.contains(coordEsq())) {
+                        next.setXY(coordDir());
+                        CoordCruz.remove(atual);
+                    }
+                    else if(CoordAntigas.contains(coordDir())){
+                        next.setXY(coordEsq());
+                        CoordCruz.remove(atual);
+                    }
+                    else if (!CoordAntigas.contains(coordDir()) && !CoordAntigas.contains(coordEsq())){
+                        next.setXY(coordDir());
+                        CoordCruz.add(atual);
+                    }else { //visitar o cruzamento mais proximo e ver se ja  viu tudo
+                        CoordCruz.remove(atual);
+                    } 
+                }else if(ParedeEsquerda()){
+                    if(CoordAntigas.contains(coordFrente())) {
+                        next.setXY(coordDir());
+                        CoordCruz.remove(atual);
+                    }else if(CoordAntigas.contains(coordDir())){ 
+                        next.setXY(coordFrente());
+                        CoordCruz.remove(atual);    
+                    }
+                    else if (!CoordAntigas.contains(coordDir()) && !CoordAntigas.contains(coordFrente())){
+                        next.setXY(coordDir());
+                        CoordCruz.add(atual);
+                    }else{//visitar o cruzamento mais proximo e ver se ja  viu tudo
+                        CoordCruz.remove(atual); 
+                    }
+                }
+                else if(ParedeDireita()){
+                     if(CoordAntigas.contains(coordEsq())) {
+                        next.setXY(coordFrente());
+                        CoordCruz.remove(atual);
+                    }
+                    else if(CoordAntigas.contains(coordFrente())){
+                        next.setXY(coordEsq());
+                        CoordCruz.remove(atual);
+                    }
+                    else if (!CoordAntigas.contains(coordFrente()) && !CoordAntigas.contains(coordEsq())){
+                        next.setXY(coordEsq());
+                        CoordCruz.add(atual);
+                    }else { //visitar o cruzamento mais proximo e ver se ja  viu tudo
+                        CoordCruz.remove(atual);
+                    } 
+                }
             }
         }
-
-/*      |
-    ----+ -----
-           x  |
-    ------    |
- */
     }
 
-    //ver para onde e que existe caminho
+    //----------------------------------------Funcoes Auxiliares------------------------
+    //----------------------------------------Funcoes Auxiliares------------------------
+    //----------------------------------------Funcoes Auxiliares------------------------
+    //----------------------------------------Funcoes Auxiliares------------------------
+    //----------------------------------------Funcoes Auxiliares------------------------
+
+
+    public void rodar90(){ //rodar 90 graus
+        // for(int i=0; i< ; i ++){
+        //     cif.DriveMotors(-0.15, 0.15);
+        //     cif.ReadSensors();            
+        // }
+        // cif.ReadSensors();
+        // cif.DriveMotors();
+    }
+    public void rodar_90(){ //rodar -90 graus
+        // for(int i=0; i< ; i ++){
+        //     cif.DriveMotors(0.15,-0.15);
+        //     cif.ReadSensors();            
+        // }
+        // cif.ReadSensors();
+        // cif.DriveMotors();
+    }
+    public void rodar180(){ //rodar 180 graus
+        // for(int i=0; i< ; i ++){
+        //     cif.DriveMotors(-0.15, 0.15);
+        //     cif.ReadSensors();            
+        // }
+        // cif.ReadSensors();
+        // cif.DriveMotors();
+    }
+
+    //serie de funcoes para dar coordenadas dos vizinhos
+    public vetor coordEsq(){
+        vetor v= new vetor(0,0);
+        if(compass==0) v.setXY(x,y+2);
+        else if(compass==90) v.setXY(x-2,y);
+        else if(compass==-90) v.setXY(x+2,y);
+        else v.setXY(x,y-2);
+        return v;
+    }
+    public vetor coordDir(){
+        vetor v= new vetor(0,0);
+        if(compass==0) v.setXY(x,y-2);
+        else if(compass==90) v.setXY(x+2,y);
+        else if(compass==-90) v.setXY(x-2,y);
+        else v.setXY(x,y+2);
+        return v;
+    }
+    public vetor coordFrente(){
+        vetor v= new vetor(0,0);
+        if(compass==0) v.setXY(x+2,y);
+        else if(compass==90) v.setXY(x,y+2);
+        else if(compass==-90) v.setXY(x,y-2);
+        else v.setXY(x-2,y);
+        return v;
+    }
+    public vetor coordTras(){
+        vetor v= new vetor(0,0);
+        if(compass==0)  v.setXY(x-2,y);
+        else if(compass==90)  v.setXY(x,y-2);
+        else if(compass==-90)  v.setXY(x,y+2);
+        else  v.setXY(x+2,y);
+        return v;
+    }
+
+    //ver se existe parede nas 4 direcoes
     public boolean ParedeFrente(){
         if(irSensor0>=2.5) return true;
         return false;
@@ -332,13 +452,33 @@ public class jClientC2 {
         return false;
     }
 
-    public int deadlock(){ //return 2 "normal", 3 "beco", 1 "cruzamento";
+    public int deadlock(){ //return 2 "normal", 3 "beco", 1 ou 0 "cruzamento";
         int c=0;
         if(irSensor0>=2.5) c++;
         if(irSensor1>=2.5) c++;
         if(irSensor2>=2.5) c++;
         if(irSensor3>=2.5) c++;
         return c;
+    }
+
+    public void alinhar(){ //vai alinhar o robo para o angulo mais proximo
+        if(compass<0){
+            if(compass>=-45){
+                 //rodar para o 0
+            }else if(compass>=135){
+                //rodar para -90
+            }else{
+              //rodar para -180  
+            }
+        }else{
+            if (compass<=45){
+                //rodar para o 0
+            }else if(compass<=135){
+                //para o 90
+            }else{
+                //rodar para os 180
+            }
+        }
     }
     /**
      * basic reactive decision algorithm, decides action based on current sensor values
@@ -411,16 +551,47 @@ public class jClientC2 {
 
     private String robName;
     private double irSensor0, irSensor1, irSensor2, irSensor3, compass, x,y, x0,y0;
-    private LinkedList<Double> ordenadasAntigas = new LinkedList <Double>(); 
-    private LinkedList<Double> abcissasAntigas = new LinkedList <Double> ();
+    private LinkedList<vetor> CoordAntigas = new LinkedList<vetor>(); //onde ja esteve
+    private LinkedList<vetor> CoordCruz = new LinkedList<vetor>(); // coordenadas do cruzamentos
     private beaconMeasure beacon;
     private int ground;
     private boolean collision;
-    private double next[] = new double[2];
-
+    private vetor next = new vetor(); //para onde vai a seguir
+    private vetor atual = new vetor(x,y); //vetor coordenadas atuais
     private State state;
 
     private int beaconToFollow;
+
+    public class vetor{
+        private double x;
+        private double y;
+
+        public vetor(){}
+        public vetor(double x, double y){
+            this.x=x;
+            this.y=y;
+        }
+        public double getX(){
+            return x;
+        }
+        public double getY(){
+            return y;
+        }
+        public void setX(double x){
+            this.x=x;
+        }
+        public void setY(double y){
+            this.y=y;
+        }
+        public void setXY(vetor v){
+            this.x=v.getX();
+            this.y=v.getY();
+        }
+        public void setXY(double x, double y){
+            this.x=x;
+            this.y=y;
+        }
+    } 
 };
 
  
