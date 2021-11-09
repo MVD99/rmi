@@ -247,26 +247,25 @@ public class jClientC2 {
     //beco = 3 paredes 1 espaco
     //Canto inferior esquerdo do mapa é o (0,0)
 
-    public void andar (double lin, double rot){
+    public void andar (){
+        // k=2
+        double lin = 2 * (next.getX()-x + next.getY()-y); //distancia entre onde o robo quer chegar e onde esta
+        double rot = 2 * (compass_goal-compass); //s=alpha*R R=1 e alpha=compass_goal-compass
         double l = (lin+rot/2);
-        double r= (lin-rot/2);
+        double r = (lin-rot/2);
         cif.DriveMotors(l, r);
     }
 
     public void wander(boolean followBeacon) {
-        if(x!=next.getX() || y!=next.getY()){ //não está no next ainda
-            double lin=0;
-            double rot=0;
-            andar(lin, rot);//funcao que escolhe velocidade de cada motor
-            //rot = k * e
-            //lin = k * e
-
-            
+        if(!(x>next.getX()-0.2 && x<next.getX()+0.2)|| !(y>next.getY()-0.2 && y<next.getY()+0.2)){ //não está no next ainda
+            andar();//funcao que escolhe velocidade de cada motor
             System.out.println("A caminho do next!");
+            System.out.println("Coordenadas calculadas do next - x= " + next.getX()+" y= "+next.getY() + " compass_goal= "+compass_goal);
+            System.out.println("Parede Cima= "+ ParedeFrente() +" Parede Tras= "+ ParedeTras() +" Parede Direita= "+ParedeDireita() +" Parede Esquerda= "+ParedeEsquerda());
         }else{
             CoordAntigas.add(atual); //x,y atuais adicionados à ultima posicao array
             if(deadlock()==2){
-                if(compass < 2 && compass > -2){
+                if(compass < 2 && compass > -2){ // compass =0
                     if(ParedeEsquerda() && ParedeDireita()) { // vai para a frente dele
                         next.setXY(x+2,y);
                         compass_goal=0;
@@ -313,23 +312,32 @@ public class jClientC2 {
                 }else{
                     System.out.println("Bug report: compass angle not expected");
                 }
-            System.out.println("Coordenadas calculadas do next - x= " + next.getX()+" y= "+next.getY());
+                System.out.println("Coordenadas calculadas do next - x= " + next.getX()+" y= "+next.getY());
 
 
             }else if (deadlock()==3){  
-                
+                //percorrer o coord cruz e qlqr posicao mais perto
+                //saber quais sao paredes e quais sao caminhos para calcular caminho ideal
+                for (int i=0;i<CoordCruz.size();i++){
+                    CoordCruz.get(i);
+                }
+                // a* -> ver qual e que esta mais perto
+
             }else if (deadlock()==1){
                 if (ParedeFrente()){
-                    if(CoordAntigas.contains(coordEsq())) {
-                        next.setXY(coordDir());
+                    if(CoordAntigas.contains(coordEsq())){
                         CoordCruz.remove(atual);
+                        next.setXY(coordDir());
+                        compass_goal = compass-90;
                     }
                     else if(CoordAntigas.contains(coordDir())){
                         next.setXY(coordEsq());
+                        compass_goal=compass+90;
                         CoordCruz.remove(atual);
                     }
                     else if (!CoordAntigas.contains(coordDir()) && !CoordAntigas.contains(coordEsq())){
                         next.setXY(coordDir());
+                        compass_goal = compass-90;
                         CoordCruz.add(atual);
                     }else { //visitar o cruzamento mais proximo e ver se ja  viu tudo
                         CoordCruz.remove(atual);
@@ -338,13 +346,16 @@ public class jClientC2 {
                 }else if(ParedeEsquerda()){
                     if(CoordAntigas.contains(coordFrente())) {
                         next.setXY(coordDir());
+                        compass_goal = compass-90;
                         CoordCruz.remove(atual);
                     }else if(CoordAntigas.contains(coordDir())){ 
                         next.setXY(coordFrente());
+                        compass_goal = compass;
                         CoordCruz.remove(atual);    
                     }
                     else if (!CoordAntigas.contains(coordDir()) && !CoordAntigas.contains(coordFrente())){
                         next.setXY(coordDir());
+                        compass_goal = compass-90;
                         CoordCruz.add(atual);
                     }else{//visitar o cruzamento mais proximo e ver se ja  viu tudo
                         CoordCruz.remove(atual); 
@@ -353,14 +364,17 @@ public class jClientC2 {
                 else if(ParedeDireita()){
                      if(CoordAntigas.contains(coordEsq())) {
                         next.setXY(coordFrente());
+                        compass_goal=compass;
                         CoordCruz.remove(atual);
                     }
                     else if(CoordAntigas.contains(coordFrente())){
                         next.setXY(coordEsq());
+                        compass_goal = compass+90;
                         CoordCruz.remove(atual);
                     }
                     else if (!CoordAntigas.contains(coordFrente()) && !CoordAntigas.contains(coordEsq())){
                         next.setXY(coordEsq());
+                        compass_goal = compass+90;
                         CoordCruz.add(atual);
                     }else { //visitar o cruzamento mais proximo e ver se ja  viu tudo
                         CoordCruz.remove(atual);
@@ -413,28 +427,28 @@ public class jClientC2 {
 
     //ver se existe parede nas 4 direcoes
     public boolean ParedeFrente(){
-        if(irSensor0>=2.5) return true;
+        if(irSensor0>=2.3) return true;
         return false;
     }
     public boolean ParedeTras(){
-        if(irSensor3>=2.5) return true;
+        if(irSensor3>=2.3) return true;
         return false;
     }
     public boolean ParedeDireita(){
-        if(irSensor2>=2.5) return true;
+        if(irSensor2>=2.3) return true;
         return false;
     }
     public boolean ParedeEsquerda(){
-        if(irSensor1>=2.5) return true;
+        if(irSensor1>=2.3) return true;
         return false;
     }
 
     public int deadlock(){ //return 2 "normal", 3 "beco", 1 ou 0 "cruzamento";
         int c=0;
-        if(irSensor0>=2.5) c++;
-        if(irSensor1>=2.5) c++;
-        if(irSensor2>=2.5) c++;
-        if(irSensor3>=2.5) c++;
+        if(irSensor0>=2.3) c++; //2.5
+        if(irSensor1>=2.3) c++;
+        if(irSensor2>=2.3) c++;
+        if(irSensor3>=2.3) c++;
         return c;
     }
 
@@ -473,9 +487,7 @@ public class jClientC2 {
                      if( ground == 0 ) {         /* Visit Target */
                          cif.SetVisitingLed(true);
                          System.out.println(robName + " visited target at " + cif.GetTime() + "\n");
-                     }
-
-                     else {
+                     }else {
                          wander(false);
                      }
                      break;
