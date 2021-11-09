@@ -17,9 +17,7 @@
     along with Foobar; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-//Pergunta professor: rodar e como meter angulos diffs nos sensores e coords gps sempre as mesmas no x0 e y0?
 //Acabar os cruzamentos 1 e 0
-//Acabar funcao rodar
 //Add funcao para guardar coordenadas das paredes 
 //funcao para se paredes sao verticais ou  horizontais
 //funcao para verificar se ja viu o mapa todo
@@ -203,7 +201,7 @@ public class jClientC2 {
         jClientC2 client = new jClientC2();
 
         client.robName = robName;
-        double[] angles = {-90,90};
+        double[] angles = {0,-90,90,180};
         // register robot in simulator
         client.cif.InitRobot2(robName, pos, angles, host);
         client.map = map;
@@ -248,76 +246,79 @@ public class jClientC2 {
     //cruzamento = 1 parede 3 espacos (vem de x1, vai a x2, volta, vai a x3, volta, volta para x1)
     //beco = 3 paredes 1 espaco
     //Canto inferior esquerdo do mapa é o (0,0)
+
+    public void andar (double lin, double rot){
+        double l = (lin+rot/2);
+        double r= (lin-rot/2);
+        cif.DriveMotors(l, r);
+    }
+
     public void wander(boolean followBeacon) {
-        if(x!=next.getX() || y!=next.getY()){ //andar em frente
-            double dist=Math.max(Math.abs(x-next.getX()), Math.abs(y-next.getY()));
-            if(dist<0.15)cif.DriveMotors(dist, dist);
-            cif.DriveMotors(0.15, 0.15);
+        if(x!=next.getX() || y!=next.getY()){ //não está no next ainda
+            double lin=0;
+            double rot=0;
+            andar(lin, rot);//funcao que escolhe velocidade de cada motor
+            //rot = k * e
+            //lin = k * e
+
+            
             System.out.println("A caminho do next!");
         }else{
             CoordAntigas.add(atual); //x,y atuais adicionados à ultima posicao array
             if(deadlock()==2){
-                if(compass==0){
+                if(compass < 2 && compass > -2){
                     if(ParedeEsquerda() && ParedeDireita()) { // vai para a frente dele
-                        next.setX(x+2);
-                        next.setY(y);
+                        next.setXY(x+2,y);
+                        compass_goal=0;
                     }else if(ParedeEsquerda() && ParedeFrente()) { // vai para a direita dele
-                        next.setX(x);
-                        next.setY(y-2);
-                        rodar_90();
+                        next.setXY(x,y-2);
+                        compass_goal=-90;
                     }else if(ParedeFrente() && ParedeDireita()) { // vai para esquerda dele
-                        next.setX(x);
-                        next.setY(y+2);
-                        rodar90();
+                        next.setXY(x,y+2);
+                        compass_goal=90;
                     }
-                }else if(compass==90){
+                }else if(compass>88 && compass < 92){
                     if(ParedeEsquerda() && ParedeDireita()) { // vai para a frente dele
-                        next.setX(x);
-                        next.setY(y+2);
+                        next.setXY(x,y+2);
+                        compass_goal = 90;
                     }else if(ParedeEsquerda() && ParedeFrente()) { // vai para a direita dele
-                        next.setX(x+2);
-                        next.setY(y);
-                        rodar_90();
+                        next.setXY(x+2,y);
+                        compass_goal = 0;
                     }else if(ParedeFrente() && ParedeDireita()) { // vai para esquerda dele
-                        next.setX(x-2);
-                        next.setY(y);
-                        rodar90();
+                        next.setXY(x-2,y);
+                        compass_goal = -180;
                     }
-                }else if(compass==-90){
+                }else if(compass<-88 && compass>-92){
                     if(ParedeEsquerda() && ParedeDireita()) { // vai para a frente dele
-                        next.setX(x);
-                        next.setY(y-2);
+                        next.setXY(x,y-2);
+                        compass_goal=-90;
                     }else if(ParedeEsquerda() && ParedeFrente()) { // vai para a direita dele
-                        next.setX(x-2);
-                        next.setY(y);
-                        rodar_90();
+                        next.setXY(x-2,y);
+                        compass_goal=-180;
                     }else if(ParedeFrente() && ParedeDireita()) { // vai para esquerda dele
-                        next.setX(x+2);
-                        next.setY(y);
-                        rodar90();
+                        next.setXY(x+2,y);
+                        compass_goal=0;
                     }
-                }else if (compass == -180 || compass ==180){
+                }else if (compass<-178 && compass>178){
                     if(ParedeEsquerda() && ParedeDireita()) { // vai para a frente dele
-                        next.setX(x-2);
-                        next.setY(y);
+                        next.setXY(x-2,y);
+                        compass_goal=180;
                     }else if(ParedeEsquerda() && ParedeFrente()) { // vai para a direita dele
-                        next.setX(x);
-                        next.setY(y+2);
-                        rodar_90();
+                        next.setXY(x,y+2);
+                        compass_goal=90;
                     }else if(ParedeFrente() && ParedeDireita()) { // vai para esquerda dele
-                        next.setX(x);
-                        next.setY(y-2);
-                        rodar90();
+                        next.setXY(x,y-2);
+                        compass_goal=-90;
                     }
                 }else{
-                    alinhar();
+                    System.out.println("Bug report: compass angle not expected");
                 }
             System.out.println("Coordenadas calculadas do next - x= " + next.getX()+" y= "+next.getY());
 
 
             }else if (deadlock()==3){  
                 
-            }else if (deadlock()==1){ 
+            }else if (deadlock()==1){
                 if (ParedeFrente()){
                     if(CoordAntigas.contains(coordEsq())) {
                         next.setXY(coordDir());
@@ -332,6 +333,7 @@ public class jClientC2 {
                         CoordCruz.add(atual);
                     }else { //visitar o cruzamento mais proximo e ver se ja  viu tudo
                         CoordCruz.remove(atual);
+                        //adicionar o algoritmo para ver onde e que ele vai a seguir
                     } 
                 }else if(ParedeEsquerda()){
                     if(CoordAntigas.contains(coordFrente())) {
@@ -374,31 +376,6 @@ public class jClientC2 {
     //----------------------------------------Funcoes Auxiliares------------------------
     //----------------------------------------Funcoes Auxiliares------------------------
 
-
-    public void rodar90(){ //rodar 90 graus
-        // for(int i=0; i< ; i ++){
-        //     cif.DriveMotors(-0.15, 0.15);
-        //     cif.ReadSensors();            
-        // }
-        // cif.ReadSensors();
-        // cif.DriveMotors();
-    }
-    public void rodar_90(){ //rodar -90 graus
-        // for(int i=0; i< ; i ++){
-        //     cif.DriveMotors(0.15,-0.15);
-        //     cif.ReadSensors();            
-        // }
-        // cif.ReadSensors();
-        // cif.DriveMotors();
-    }
-    public void rodar180(){ //rodar 180 graus
-        // for(int i=0; i< ; i ++){
-        //     cif.DriveMotors(-0.15, 0.15);
-        //     cif.ReadSensors();            
-        // }
-        // cif.ReadSensors();
-        // cif.DriveMotors();
-    }
 
     //serie de funcoes para dar coordenadas dos vizinhos
     public vetor coordEsq(){
@@ -461,25 +438,6 @@ public class jClientC2 {
         return c;
     }
 
-    public void alinhar(){ //vai alinhar o robo para o angulo mais proximo
-        if(compass<0){
-            if(compass>=-45){
-                 //rodar para o 0
-            }else if(compass>=135){
-                //rodar para -90
-            }else{
-              //rodar para -180  
-            }
-        }else{
-            if (compass<=45){
-                //rodar para o 0
-            }else if(compass<=135){
-                //para o 90
-            }else{
-                //rodar para os 180
-            }
-        }
-    }
     /**
      * basic reactive decision algorithm, decides action based on current sensor values
      */
@@ -550,7 +508,8 @@ public class jClientC2 {
     }
 
     private String robName;
-    private double irSensor0, irSensor1, irSensor2, irSensor3, compass, x,y, x0,y0;
+    private double irSensor0, irSensor1, irSensor2, irSensor3, compass, compass_goal, x, y, x0,y0; 
+    // compass_goal para onde ele vai ter de rodar
     private LinkedList<vetor> CoordAntigas = new LinkedList<vetor>(); //onde ja esteve
     private LinkedList<vetor> CoordCruz = new LinkedList<vetor>(); // coordenadas do cruzamentos
     private beaconMeasure beacon;
@@ -587,9 +546,11 @@ public class jClientC2 {
             this.x=v.getX();
             this.y=v.getY();
         }
-        public void setXY(double x, double y){
-            this.x=x;
-            this.y=y;
+        public void setXY(double xf, double yf){
+            double nx = Double.valueOf(Math.round(xf));
+            double ny = Double.valueOf(Math.round(yf));
+            x=nx;
+            y=ny;
         }
     } 
 };
