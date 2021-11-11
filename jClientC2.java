@@ -219,8 +219,6 @@ public class jClientC2 {
 
             beaconToFollow = 0;
             ground=-1;
-
-            state = State.RUN;
     }
 
     /** 
@@ -233,6 +231,7 @@ public class jClientC2 {
         while(true) {
                 cif.ReadSensors(); // ler os sensores ..... 
                 //criar as variaveis....
+
                 decide();
         }
     }
@@ -248,27 +247,155 @@ public class jClientC2 {
     //beco = 3 paredes 1 espaco
     //Canto inferior esquerdo do mapa é o (0,0)
 
-    public void andar (){
-        // k=2
-        double lin = 2 * (next.getX()-x + next.getY()-y); //distancia entre onde o robo quer chegar e onde esta
-        double rot = 2 * (compass_goal-compass); //s=alpha*R R=1 e alpha=compass_goal-compass
-        double l = (lin+rot/2);
-        double r = (lin-rot/2);
+    // public void andar (){
+    //     // k=2
+    //     double lin = 2 * (next.getX()-x + next.getY()-y); //distancia entre onde o robo quer chegar e onde esta
+    //     double rot = 2 * (compass_goal-compass); //s=alpha*R R=1 e alpha=compass_goal-compass
+    //     double l = (lin+rot/2);
+    //     double r = (lin-rot/2);
+    //     cif.DriveMotors(l, r);
+    // }
+
+    //serie de funcoes para dar coordenadas dos vizinhos
+    
+
+    /**
+     * basic reactive decision algorithm, decides action based on current sensor values
+     */
+    public void decide() { // num ciclo decide o que vai fazer -> drivemotors
+            if(cif.IsObstacleReady(0))
+                    irSensor0 = cif.GetObstacleSensor(0);
+            if(cif.IsObstacleReady(1))
+                    irSensor1 = cif.GetObstacleSensor(1);
+            if(cif.IsObstacleReady(2))
+                    irSensor2 = cif.GetObstacleSensor(2);
+            if(cif.IsObstacleReady(3))
+                    irSensor3 = cif.GetObstacleSensor(3);
+            if(cif.IsCompassReady())
+                    compass = cif.GetCompassSensor();
+            if(cif.IsGroundReady())
+                    ground = cif.GetGroundSensor(); // ver se esta num dos alvos
+            if(cif.IsGPSReady()){
+                    x = cif.GetX() - x0;//+-22
+                    y = cif.GetY() - y0;//+-13
+            }
+
+            if(cif.IsBeaconReady(beaconToFollow))
+                    beacon = cif.GetBeaconSensor(beaconToFollow);
+
+            System.out.println("Measures: ir0=" + irSensor0 + " ir1=" + irSensor1 + " ir2=" + irSensor2 + " ir3="+ irSensor3+"\n" + "bussola=" + compass + " GPS-X=" + x + " GPS-y=" + y  +"\n");
+            
+
+            //funcao geral: detetar se está no centro, se sim corre mapping e calcular next, se nao manda andar para onde é preciso
+            //andar implica ou curvas ou ahead
+            state = mappingDecode(); //vai darnos para qual estado ir... aproveitar alguns dos ifs que tinhamos
+            switch(state) { /////é aqui que mexemos
+               
+                case GA: // andar para a frente
+                    if(targetReached())
+                        break; //se estivermos no meio da funcao
+                    else{
+                        goAhead(); //andar -> funcao de andar
+                        break;
+                    }
+                case RL:
+                    if() //se a bussola tiver rodado = |bussulaInicial-Bussula| <=0.2 ??????????
+                        state = State.GA;
+                    else
+                        goTornLeft(); //andar para a esquerda
+                    break;
+                case RR: 
+                    if() //se a bussola tiver rodado
+                        state = State.GA;
+                    else
+                        goTornRigth();//andar para a direita
+               /* case INV: // quando ele tievr que inverter
+                    //ele roda uma vez e depois o estado muda para o rr ou rl
+                    goTornRigth();
+                    state = State.RR;*/
+
+                case END:
+                    cif.DriveMotors(0.0,0.0);  
+                    break;          
+            }
+            return;
+    }
+
+    public State Estados(){
+        if (targetReached()){
+            mappingDecode();
+            if(compass_goal!=compass) ; //rodar e adicionar aproximaçoes
+        }else{
+            return GA;
+        }
+    }
+
+    public void mappingDecode(){
+        //mapear
+        //calcular next
+        //calcular o estado quando esta no centro da celula
+        //definir compass_goal
+    }
+
+
+    public boolean targetReached(){ //chegou ao objetivo?
+        if (Math.abs(x-next.getX())<=0.2 && Math.abs(y-next.getY())<=0.2){      
+            return true;
+        }else{
+            return false;
+        }
+
+    }
+
+    public void goTornLeft(){
+        cif.DriveMotors(0, 0.15);
+    }
+
+    public void goTornRigth(){
+        cif.DriveMotors(0.15, 0);
+    }
+
+    public void goAhead(){ //yr -> y inicial -> funcao de andar para a frente
+        if(Eixo()){ // ele esta virado na horizontal
+            double deltaY = next.getY() - y; //Y que quero alcançar - y atual 
+            double deltaX = next.getX() - x;
+        }
+        else{ //robo no eixo veritcal
+            double deltaY = next.getY() - y; //Y que quero alcançar - y atual 
+            double deltaX = next.getX() - x; //X que quero alcançar - x atual
+        }
+            double lin = 0.5 * deltaX * nivel(); //nivel corresponde a ser + ou - no eixo
+            double rot = 0.5 * deltaY * nivel(); //
+            double l = (lin+rot/2);
+            double r = (lin-rot/2);
         cif.DriveMotors(l, r);
     }
 
-    public void wander(boolean followBeacon) {
-        
+    
+    //para nao ir para cima quando esta a rodado para baixo ou para a esquerda (-90 e 180)
+    public double nivel(){ //alinhador dos goAheads positivo ou negativo
+        if(compass>-45 && compass<135) return 1;
+        return -1;
+    }
+    public boolean Eixo(){ //true se for horizontal
+        if((compass>-45 && compass<=45) || (compass>= 135 && compass < -135)) return true;
+        else return false;
     }
 
-    //----------------------------------------Funcoes Auxiliares------------------------
-    //----------------------------------------Funcoes Auxiliares------------------------
-    //----------------------------------------Funcoes Auxiliares------------------------
-    //----------------------------------------Funcoes Auxiliares------------------------
-    //----------------------------------------Funcoes Auxiliares------------------------
+    static void print_usage() {
+             System.out.println("Usage: java jClientC2 [--robname <robname>] [--pos <pos>] [--host <hostname>[:<port>]] [--map <map_filename>]");
+    }
+
+    public void printMap() {
+           if (map==null) return;
+        
+           for (int r=map.labMap.length-1; r>=0 ; r--) {
+               System.out.println(map.labMap[r]);
+           }
+    }
 
 
-    //serie de funcoes para dar coordenadas dos vizinhos
+    //AUXILIARES
     public vetor coordEsq(){
         vetor v= new vetor(0,0);
         if(compass==0) v.setXY(x,y+2);
@@ -329,101 +456,8 @@ public class jClientC2 {
         return c;
     }
 
-    public boolean targetReached(){
-        if (){
-            return true;
-        }else{
-            return false;
-        }
 
-    }
-
-    public void goAhead(double xr,double yr){ //yr -> y inicial -> funcao de andar para a frente
-        //rot e usado para ele ir sempre no meio
-        // k=0.05 ->roda mais ou menos 5º por ciclo
-        double deltaY = y - yr; //y atual menos o que e para guardar 
-        double deltaX = x-xr;
-        double lin = 0.05 * deltaX; //distancia entre onde o robo quer chegar e onde esta
-        double rot = 0.05 * deltaY; //s=alpha*R R=1 e alpha=compass_goal-compass
-        double l = (lin+rot/2);
-        double r = (lin-rot/2);
-        cif.DriveMotors(l, r);
-    }
-
-    /**
-     * basic reactive decision algorithm, decides action based on current sensor values
-     */
-    public void decide() { // num ciclo decide o que vai fazer -> drivemotors
-            if(cif.IsObstacleReady(0))
-                    irSensor0 = cif.GetObstacleSensor(0);
-            if(cif.IsObstacleReady(1))
-                    irSensor1 = cif.GetObstacleSensor(1);
-            if(cif.IsObstacleReady(2))
-                    irSensor2 = cif.GetObstacleSensor(2);
-            if(cif.IsObstacleReady(3))
-                    irSensor3 = cif.GetObstacleSensor(3);
-            if(cif.IsCompassReady())
-                    compass = cif.GetCompassSensor();
-            if(cif.IsGroundReady())
-                    ground = cif.GetGroundSensor(); // ver se esta num dos alvos
-            if(cif.IsGPSReady()){
-                    x = cif.GetX() - x0;//+-22
-                    y = cif.GetY() - y0;//+-13
-            }
-
-            if(cif.IsBeaconReady(beaconToFollow))
-                    beacon = cif.GetBeaconSensor(beaconToFollow);
-
-            System.out.println("Measures: ir0=" + irSensor0 + " ir1=" + irSensor1 + " ir2=" + irSensor2 + " ir3="+ irSensor3+"\n" + "bussola=" + compass + " GPS-X=" + x + " GPS-y=" + y  +"\n");
-
-            //System.out.println(robName + " state " + state);
- 
-
-            switch(state) { /////é aqui que mexemos
-               
-                state = mappingDecode(); //vai darnos para qual estado ir... aproveitar alguns dos ifs que tinhamos
-                case GA: // andar para a frente
-                    double yr = ;
-                    if(targetReached()) //se estivermos no meio da funcao
-                        //state = mappingDecode();
-                        state = State.END;
-                    else
-                        goAhead(); //andar -> funcao de andar
-                    break;
-                /*case RL:
-                    if() //se a bussola tiver rodado = |bussulaInicial-Bussula| <=0.2
-                        state = State.GA;
-                    else
-                        goTornLeft(); //andar para a esquerda
-                    break;
-                case RR: 
-                    if() //se a bussola tiver rodado
-                        state = State.GA;
-                    else
-                        goTornRigth();//andar para a direita
-                case INV: // quando ele tievr que inverter
-                    //ele roda uma vez e depois o estado muda para o rr ou rl
-                    goTornRigth();
-                    state = State.RR;*/
-
-                case END:
-                    cif.DriveMotors(0.0,0.0);
-            
-            }
-            return;
-    }
-
-    static void print_usage() {
-             System.out.println("Usage: java jClientC2 [--robname <robname>] [--pos <pos>] [--host <hostname>[:<port>]] [--map <map_filename>]");
-    }
-
-    public void printMap() {
-           if (map==null) return;
-        
-           for (int r=map.labMap.length-1; r>=0 ; r--) {
-               System.out.println(map.labMap[r]);
-           }
-    }
+    //VARIAVEIS
 
     private String robName;
     private double irSensor0, irSensor1, irSensor2, irSensor3, compass, compass_goal, x, y, x0,y0; 
