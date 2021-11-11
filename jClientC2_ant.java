@@ -136,7 +136,7 @@ public class jClientC2 {
     ciberIF cif;
     Map map;
 
-    enum State {GA, RL, RR,INV, END}
+    enum State {RUN, WAIT, RETURN}
 
     public static void main(String[] args) {
 
@@ -201,7 +201,7 @@ public class jClientC2 {
         jClientC2 client = new jClientC2();
 
         client.robName = robName;
-        double[] angles = {0,90,-90,180};
+        double[] angles = {0,-90,90,180};   //experimentar com 0,90,-90 ,180
         // register robot in simulator
         client.cif.InitRobot2(robName, pos, angles, host);
         client.map = map;
@@ -226,13 +226,12 @@ public class jClientC2 {
     /** 
      * reads a new message, decides what to do and sends action to simulator
      */
-    public void mainLoop () { //ver aqui.....
+    public void mainLoop () {
         cif.ReadSensors();
         x0=cif.GetX();
         y0=cif.GetY();
         while(true) {
-                cif.ReadSensors(); // ler os sensores ..... 
-                //criar as variaveis....
+                cif.ReadSensors();
                 decide();
         }
     }
@@ -249,7 +248,7 @@ public class jClientC2 {
     //Canto inferior esquerdo do mapa é o (0,0)
 
     public void andar (){
-        // k=2
+        // k=2 -> 0.1 experimentar
         double lin = 2 * (next.getX()-x + next.getY()-y); //distancia entre onde o robo quer chegar e onde esta
         double rot = 2 * (compass_goal-compass); //s=alpha*R R=1 e alpha=compass_goal-compass
         double l = (lin+rot/2);
@@ -258,7 +257,131 @@ public class jClientC2 {
     }
 
     public void wander(boolean followBeacon) {
-        
+        if(!(x>next.getX()-0.2 && x<next.getX()+0.2)|| !(y>next.getY()-0.2 && y<next.getY()+0.2)){ //não está no next ainda
+            andar();//funcao que escolhe velocidade de cada motor
+            System.out.println("A caminho do next!");
+            System.out.println("Coordenadas calculadas do next - x= " + next.getX()+" y= "+next.getY() + " compass_goal= "+compass_goal);
+            System.out.println("Parede Cima= "+ ParedeFrente() +" Parede Tras= "+ ParedeTras() +" Parede Direita= "+ParedeDireita() +" Parede Esquerda= "+ParedeEsquerda());
+        }else{
+            CoordAntigas.add(atual); //x,y atuais adicionados à ultima posicao array
+            if(deadlock()==2){
+                if(compass < 2 && compass > -2){ // compass =0
+                    if(ParedeEsquerda() && ParedeDireita()) { // vai para a frente dele
+                        next.setXY(x+2,y);
+                        compass_goal=0;
+                    }else if(ParedeEsquerda() && ParedeFrente()) { // vai para a direita dele
+                        next.setXY(x,y-2);
+                        compass_goal=-90;
+                    }else if(ParedeFrente() && ParedeDireita()) { // vai para esquerda dele
+                        next.setXY(x,y+2);
+                        compass_goal=90;
+                    }
+                }else if(compass>88 && compass < 92){
+                    if(ParedeEsquerda() && ParedeDireita()) { // vai para a frente dele
+                        next.setXY(x,y+2);
+                        compass_goal = 90;
+                    }else if(ParedeEsquerda() && ParedeFrente()) { // vai para a direita dele
+                        next.setXY(x+2,y);
+                        compass_goal = 0;
+                    }else if(ParedeFrente() && ParedeDireita()) { // vai para esquerda dele
+                        next.setXY(x-2,y);
+                        compass_goal = -180;
+                    }
+                }else if(compass<-88 && compass>-92){
+                    if(ParedeEsquerda() && ParedeDireita()) { // vai para a frente dele
+                        next.setXY(x,y-2);
+                        compass_goal=-90;
+                    }else if(ParedeEsquerda() && ParedeFrente()) { // vai para a direita dele
+                        next.setXY(x-2,y);
+                        compass_goal=-180;
+                    }else if(ParedeFrente() && ParedeDireita()) { // vai para esquerda dele
+                        next.setXY(x+2,y);
+                        compass_goal=0;
+                    }
+                }else if (compass<-178 && compass>178){
+                    if(ParedeEsquerda() && ParedeDireita()) { // vai para a frente dele
+                        next.setXY(x-2,y);
+                        compass_goal=180;
+                    }else if(ParedeEsquerda() && ParedeFrente()) { // vai para a direita dele
+                        next.setXY(x,y+2);
+                        compass_goal=90;
+                    }else if(ParedeFrente() && ParedeDireita()) { // vai para esquerda dele
+                        next.setXY(x,y-2);
+                        compass_goal=-90;
+                    }
+                }else{
+                    System.out.println("Bug report: compass angle not expected");
+                }
+                System.out.println("Coordenadas calculadas do next - x= " + next.getX()+" y= "+next.getY());
+
+
+            }else if (deadlock()==3){  
+                //percorrer o coord cruz e qlqr posicao mais perto
+                //saber quais sao paredes e quais sao caminhos para calcular caminho ideal
+                for (int i=0;i<CoordCruz.size();i++){
+                    CoordCruz.get(i);
+                }
+                // a* -> ver qual e que esta mais perto
+
+            }else if (deadlock()==1){
+                if (ParedeFrente()){
+                    if(CoordAntigas.contains(coordEsq())){
+                        CoordCruz.remove(atual);
+                        next.setXY(coordDir());
+                        compass_goal = compass-90;
+                    }
+                    else if(CoordAntigas.contains(coordDir())){
+                        next.setXY(coordEsq());
+                        compass_goal=compass+90;
+                        CoordCruz.remove(atual);
+                    }
+                    else if (!CoordAntigas.contains(coordDir()) && !CoordAntigas.contains(coordEsq())){
+                        next.setXY(coordDir());
+                        compass_goal = compass-90;
+                        CoordCruz.add(atual);
+                    }else { //visitar o cruzamento mais proximo e ver se ja  viu tudo
+                        CoordCruz.remove(atual);
+                        //adicionar o algoritmo para ver onde e que ele vai a seguir
+                    } 
+                }else if(ParedeEsquerda()){
+                    if(CoordAntigas.contains(coordFrente())) {
+                        next.setXY(coordDir());
+                        compass_goal = compass-90;
+                        CoordCruz.remove(atual);
+                    }else if(CoordAntigas.contains(coordDir())){ 
+                        next.setXY(coordFrente());
+                        compass_goal = compass;
+                        CoordCruz.remove(atual);    
+                    }
+                    else if (!CoordAntigas.contains(coordDir()) && !CoordAntigas.contains(coordFrente())){
+                        next.setXY(coordDir());
+                        compass_goal = compass-90;
+                        CoordCruz.add(atual);
+                    }else{//visitar o cruzamento mais proximo e ver se ja  viu tudo
+                        CoordCruz.remove(atual); 
+                    }
+                }
+                else if(ParedeDireita()){
+                     if(CoordAntigas.contains(coordEsq())) {
+                        next.setXY(coordFrente());
+                        compass_goal=compass;
+                        CoordCruz.remove(atual);
+                    }
+                    else if(CoordAntigas.contains(coordFrente())){
+                        next.setXY(coordEsq());
+                        compass_goal = compass+90;
+                        CoordCruz.remove(atual);
+                    }
+                    else if (!CoordAntigas.contains(coordFrente()) && !CoordAntigas.contains(coordEsq())){
+                        next.setXY(coordEsq());
+                        compass_goal = compass+90;
+                        CoordCruz.add(atual);
+                    }else { //visitar o cruzamento mais proximo e ver se ja  viu tudo
+                        CoordCruz.remove(atual);
+                    } 
+                }
+            }
+        }
     }
 
     //----------------------------------------Funcoes Auxiliares------------------------
@@ -329,31 +452,10 @@ public class jClientC2 {
         return c;
     }
 
-    public boolean targetReached(){
-        if (){
-            return true;
-        }else{
-            return false;
-        }
-
-    }
-
-    public void goAhead(double xr,double yr){ //yr -> y inicial -> funcao de andar para a frente
-        //rot e usado para ele ir sempre no meio
-        // k=0.05 ->roda mais ou menos 5º por ciclo
-        double deltaY = y - yr; //y atual menos o que e para guardar 
-        double deltaX = x-xr;
-        double lin = 0.05 * deltaX; //distancia entre onde o robo quer chegar e onde esta
-        double rot = 0.05 * deltaY; //s=alpha*R R=1 e alpha=compass_goal-compass
-        double l = (lin+rot/2);
-        double r = (lin-rot/2);
-        cif.DriveMotors(l, r);
-    }
-
     /**
      * basic reactive decision algorithm, decides action based on current sensor values
      */
-    public void decide() { // num ciclo decide o que vai fazer -> drivemotors
+    public void decide() {
             if(cif.IsObstacleReady(0))
                     irSensor0 = cif.GetObstacleSensor(0);
             if(cif.IsObstacleReady(1))
@@ -362,6 +464,7 @@ public class jClientC2 {
                     irSensor2 = cif.GetObstacleSensor(2);
             if(cif.IsObstacleReady(3))
                     irSensor3 = cif.GetObstacleSensor(3);
+
             if(cif.IsCompassReady())
                     compass = cif.GetCompassSensor();
             if(cif.IsGroundReady())
@@ -377,40 +480,31 @@ public class jClientC2 {
             System.out.println("Measures: ir0=" + irSensor0 + " ir1=" + irSensor1 + " ir2=" + irSensor2 + " ir3="+ irSensor3+"\n" + "bussola=" + compass + " GPS-X=" + x + " GPS-y=" + y  +"\n");
 
             //System.out.println(robName + " state " + state);
- 
 
-            switch(state) { /////é aqui que mexemos
-               
-                state = mappingDecode(); //vai darnos para qual estado ir... aproveitar alguns dos ifs que tinhamos
-                case GA: // andar para a frente
-                    double yr = ;
-                    if(targetReached()) //se estivermos no meio da funcao
-                        //state = mappingDecode();
-                        state = State.END;
-                    else
-                        goAhead(); //andar -> funcao de andar
-                    break;
-                /*case RL:
-                    if() //se a bussola tiver rodado = |bussulaInicial-Bussula| <=0.2
-                        state = State.GA;
-                    else
-                        goTornLeft(); //andar para a esquerda
-                    break;
-                case RR: 
-                    if() //se a bussola tiver rodado
-                        state = State.GA;
-                    else
-                        goTornRigth();//andar para a direita
-                case INV: // quando ele tievr que inverter
-                    //ele roda uma vez e depois o estado muda para o rr ou rl
-                    goTornRigth();
-                    state = State.RR;*/
+            switch(state) {
+                 case RUN:    /* Go */
+                     if( cif.GetVisitingLed() ) state = State.WAIT;
+                     if( ground == 0 ) {         /* Visit Target */
+                         cif.SetVisitingLed(true);
+                         System.out.println(robName + " visited target at " + cif.GetTime() + "\n");
+                     }else {
+                         wander(false);
+                     }
+                     break;
+                 case WAIT: /* set returning led and check that it is on */
+                     cif.SetReturningLed(true);
+                     if(cif.GetVisitingLed()) cif.SetVisitingLed(false);
+                     if(cif.GetReturningLed()) state = State.RETURN;
 
-                case END:
-                    cif.DriveMotors(0.0,0.0);
-            
+                     cif.DriveMotors(0.0,0.0);
+                     break;
+                 case RETURN: /* Return to home area */
+                     cif.SetVisitingLed(false);
+                     cif.SetReturningLed(false);
+                     wander(false);
+                     break;
+
             }
-            return;
     }
 
     static void print_usage() {
