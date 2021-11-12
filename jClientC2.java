@@ -17,12 +17,10 @@
     along with Foobar; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-//goRight()
-//goLeft()
-//definir o state INV
-//escolhar tipo de mapa
-//mapear
-//escolher next
+//escolher tipo de mapa  - "X - | + \s"
+//mapear - sensores detetar paredes
+//guardar - guardar coordenadas das paredes ?
+//calcular next
 
 import java.beans.PersistenceDelegate;
 import java.io.*;
@@ -142,13 +140,14 @@ public class jClientC2 {
         int pos; 
         int arg;
         Map map;
+        String fileMap = new String();
+
 
         //default values
         host = "localhost";
         robName = "jClientC2";
         pos = 1;
         map = null;
-
 
         // parse command-line arguments
         try {
@@ -186,6 +185,12 @@ public class jClientC2 {
 
                                 arg += 2;
                         }
+                }
+                else if(args[arg].equals("--mapFile") || args[arg].equals("-mf")) {
+                    if(args.length > arg+1) {
+                        fileMap=args[arg+1];
+                        arg += 2;
+                    }
                 }
                 else throw new Exception();
             }
@@ -238,25 +243,7 @@ public class jClientC2 {
 
      /*! In this map the center of cell (i,j), (i in 0..6, j in 0..13) is mapped to labMap[i*2][j*2].
      *  to know if there is a wall on top of cell(i,j) (i in 0..5), check if the value of labMap[i*2+1][j*2] is space or not
-     */
-    //Array guarda informacao e imprimi mapa no fim PrintMapa
-    //Aprender a usar GPS e 
-    //bussola double = angulo
-    //cruzamento = 1 parede 3 espacos (vem de x1, vai a x2, volta, vai a x3, volta, volta para x1)
-    //beco = 3 paredes 1 espaco
-    //Canto inferior esquerdo do mapa é o (0,0)
-
-    // public void andar (){
-    //     // k=2
-    //     double lin = 2 * (next.getX()-x + next.getY()-y); //distancia entre onde o robo quer chegar e onde esta
-    //     double rot = 2 * (compass_goal-compass); //s=alpha*R R=1 e alpha=compass_goal-compass
-    //     double l = (lin+rot/2);
-    //     double r = (lin-rot/2);
-    //     cif.DriveMotors(l, r);
-    // }
-
-    //serie de funcoes para dar coordenadas dos vizinhos
-    
+     */    
 
     /**
      * basic reactive decision algorithm, decides action based on current sensor values
@@ -321,9 +308,8 @@ public class jClientC2 {
                         break;
                     }
                 case INV: // quando ele tievr que inverter
-                    //ele roda uma vez e depois o estado muda para o rr ou rl
+                    //ele roda uma vez e depois o estado muda para o rr automaticamente e acaba a inversao
                     goRight();
-                    //state = State.RR;
                     break;
 
                 case END:
@@ -349,13 +335,6 @@ public class jClientC2 {
         }else{
             return State.GA;
         }
-    }
-
-    public void mappingDecode(){
-        //mapear
-        //calcular next
-        //calcular o estado quando esta no centro da celula
-        //definir compass_goal
     }
 
 
@@ -414,52 +393,55 @@ public class jClientC2 {
         else return false;
     }
 
-    static void print_usage() {
-             System.out.println("Usage: java jClientC2 [--robname <robname>] [--pos <pos>] [--host <hostname>[:<port>]] [--map <map_filename>]");
+
+    public void mappingDecode(){
+        //detetar paredes
+        if(ParedeDireita()){
+            if(!onMap(coordDir())) //verificar se já está escrito
+                if(par(coordDir()))
+                    writeMap(coordDir(),"|");
+                else
+                    writeMap(coordDir(),"-");
+
+        }
+        if(ParedeEsquerda()){
+            if(!onMap(coordEsq())) //verificar se já está escrito
+                if(par(coordEsq()))
+                    writeMap(coordEsq(),"|");
+                else
+                    writeMap(coordEsq(),"-");
+        }
+        if(ParedeFrente()){
+            if(!onMap(coordFrente())) //verificar se já está escrito
+                if(par(coordFrente()))
+                    writeMap(coordFrente(),"|");
+                else
+                    writeMap(coordFrente(),"-");
+        }
+        if(ParedeTras()){
+            if(!onMap(coordTras())) //verificar se já está escrito
+                if(par(coordTras()))
+                    writeMap(coordTras(),"|");
+                else
+                    writeMap(coordTras(),"-");
+        }
+        //calcular next
+        //calcular o estado quando esta no centro da celula
+        //definir compass_goal
+    }
+    public void writeMap(vetor v, String a){ //Escreve na coordenada dada o simbolo correspondente "X - | "
+
     }
 
-    public void printMap() {
-           if (map==null) return;
-        
-           for (int r=map.labMap.length-1; r>=0 ; r--) {
-               System.out.println(map.labMap[r]);
-           }
+    public boolean onMap(vetor v){  //Verificar se as coordenadas dadas já estão preenchidas
+        return true;
     }
 
+    public boolean par(vetor v){//impar horizontal, par vertical
+        if(v.getX()%2==0) return true;
+        return false;
+    }
 
-    //AUXILIARES
-    public vetor coordEsq(){
-        vetor v= new vetor(0,0);
-        if(compass==0) v.setXY(x,y+2);
-        else if(compass==90) v.setXY(x-2,y);
-        else if(compass==-90) v.setXY(x+2,y);
-        else v.setXY(x,y-2);
-        return v;
-    }
-    public vetor coordDir(){
-        vetor v= new vetor(0,0);
-        if(compass==0) v.setXY(x,y-2);
-        else if(compass==90) v.setXY(x+2,y);
-        else if(compass==-90) v.setXY(x-2,y);
-        else v.setXY(x,y+2);
-        return v;
-    }
-    public vetor coordFrente(){
-        vetor v= new vetor(0,0);
-        if(compass==0) v.setXY(x+2,y);
-        else if(compass==90) v.setXY(x,y+2);
-        else if(compass==-90) v.setXY(x,y-2);
-        else v.setXY(x-2,y);
-        return v;
-    }
-    public vetor coordTras(){
-        vetor v= new vetor(0,0);
-        if(compass==0)  v.setXY(x-2,y);
-        else if(compass==90)  v.setXY(x,y-2);
-        else if(compass==-90)  v.setXY(x,y+2);
-        else  v.setXY(x+2,y);
-        return v;
-    }
 
     //ver se existe parede nas 4 direcoes
     public boolean ParedeFrente(){
@@ -478,6 +460,56 @@ public class jClientC2 {
         if(irSensor1>=2.3) return true;
         return false;
     }
+
+
+
+    static void print_usage() {
+             System.out.println("Usage: java jClientC2 [--robname <robname>] [--pos <pos>] [--host <hostname>[:<port>]] [--map <map_filename>]");
+    }
+
+    public void printMap() {
+           if (map==null) return;
+        
+           for (int r=map.labMap.length-1; r>=0 ; r--) {
+               System.out.println(map.labMap[r]);
+           }
+    }
+
+
+    //AUXILIARES
+    public vetor coordEsq(){
+        vetor v= new vetor(0,0);
+        if(compass==0) v.setXY(x,y+1);
+        else if(compass==90) v.setXY(x-1,y);
+        else if(compass==-90) v.setXY(x+1,y);
+        else v.setXY(x,y-1);
+        return v;
+    }
+    public vetor coordDir(){
+        vetor v= new vetor(0,0);
+        if(compass==0) v.setXY(x,y-1);
+        else if(compass==90) v.setXY(x+1,y);
+        else if(compass==-90) v.setXY(x-1,y);
+        else v.setXY(x,y+1);
+        return v;
+    }
+    public vetor coordFrente(){
+        vetor v= new vetor(0,0);
+        if(compass==0) v.setXY(x+1,y);
+        else if(compass==90) v.setXY(x,y+1);
+        else if(compass==-90) v.setXY(x,y-1);
+        else v.setXY(x-1,y);
+        return v;
+    }
+    public vetor coordTras(){
+        vetor v= new vetor(0,0);
+        if(compass==0)  v.setXY(x-1,y);
+        else if(compass==90)  v.setXY(x,y-1);
+        else if(compass==-90)  v.setXY(x,y+1);
+        else  v.setXY(x+1,y);
+        return v;
+    }
+
 
     public int deadlock(){ //return 2 "normal", 3 "beco", 1 ou 0 "cruzamento";
         int c=0;
