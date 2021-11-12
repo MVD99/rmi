@@ -17,14 +17,12 @@
     along with Foobar; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-//Acabar os cruzamentos 1 e 0
-//Add funcao para guardar coordenadas das paredes 
-//funcao para se paredes sao verticais ou  horizontais
-//funcao para verificar se ja viu o mapa todo
-//funcao para ver se celula é inacessivel
-//funcao para calcular coordenadas dos limites
-//funcao para o beco, voltar para tras para a celula mais proxima
-//funcao para dar print no mapa
+//goRight()
+//goLeft()
+//definir o state INV
+//escolhar tipo de mapa
+//mapear
+//escolher next
 
 import java.beans.PersistenceDelegate;
 import java.io.*;
@@ -136,7 +134,7 @@ public class jClientC2 {
     ciberIF cif;
     Map map;
 
-    enum State {GA, RL, RR,INV, END}
+    enum State {INIT, GA, RL, RR,INV, END}
 
     public static void main(String[] args) {
 
@@ -228,6 +226,7 @@ public class jClientC2 {
         cif.ReadSensors();
         x0=cif.GetX();
         y0=cif.GetY();
+        init=true;
         while(true) {
                 cif.ReadSensors(); // ler os sensores ..... 
                 //criar as variaveis....
@@ -288,31 +287,44 @@ public class jClientC2 {
 
             //funcao geral: detetar se está no centro, se sim corre mapping e calcular next, se nao manda andar para onde é preciso
             //andar implica ou curvas ou ahead
-            state = mappingDecode(); //vai darnos para qual estado ir... aproveitar alguns dos ifs que tinhamos
+            state = Estados(); 
+            
             switch(state) { /////é aqui que mexemos
                
                 case GA: // andar para a frente
-                    if(targetReached())
+                    if(targetReached()){
+                        mappingDecode(); //vai darnos para qual estado ir... aproveitar alguns dos ifs que tinhamos
+            
                         break; //se estivermos no meio da funcao
+                    }
                     else{
                         goAhead(); //andar -> funcao de andar
                         break;
                     }
                 case RL:
-                    if() //se a bussola tiver rodado = |bussulaInicial-Bussula| <=0.2 ??????????
-                        state = State.GA;
-                    else
-                        goTornLeft(); //andar para a esquerda
-                    break;
+                    if(targetReached()){ //se nao atualizar os next
+                        mappingDecode(); 
+                        break; //se estivermos no meio da funcao
+                    }
+                    else{
+                        goLeft(); //esquerda -> funcao de rodar
+                        break;
+                    }
+                    
                 case RR: 
-                    if() //se a bussola tiver rodado
-                        state = State.GA;
-                    else
-                        goTornRigth();//andar para a direita
-               /* case INV: // quando ele tievr que inverter
+                    if(targetReached()){ //se nao atualizar os next
+                        mappingDecode(); 
+                        break; //se estivermos no meio da funcao
+                    }
+                    else{
+                        goRight(); //rodar direita -> funcao de rodar
+                        break;
+                    }
+                case INV: // quando ele tievr que inverter
                     //ele roda uma vez e depois o estado muda para o rr ou rl
-                    goTornRigth();
-                    state = State.RR;*/
+                    goRight();
+                    //state = State.RR;
+                    break;
 
                 case END:
                     cif.DriveMotors(0.0,0.0);  
@@ -322,11 +334,20 @@ public class jClientC2 {
     }
 
     public State Estados(){
-        if (targetReached()){
-            mappingDecode();
-            if(compass_goal!=compass) ; //rodar e adicionar aproximaçoes
+        if(init==true){
+            init=false;
+            return State.GA;
+        }
+        if((compass_goal!=compass) && Math.abs(compass-compass_goal)>=10){ //VERIFICAR SE 10º É MUITO
+            if(Math.abs(compass-compass_goal)>100) return State.INV;
+            if(Eixo() && nivel() ==-1){ // se o robo estiver a apontar para a nossa esquerda
+                if(compass_goal==-90) return State.RL;
+                else return State.RR;
+            }
+            if(compass_goal>compass) return State.RL;
+            else return State.RR;
         }else{
-            return GA;
+            return State.GA;
         }
     }
 
@@ -347,22 +368,33 @@ public class jClientC2 {
 
     }
 
-    public void goTornLeft(){
-        cif.DriveMotors(0, 0.15);
+    public void goLeft(){
+        double deltaC = Math.abs(Math.abs(compass_goal)-Math.abs(compass));
+        double rot = 0.5 * deltaC; //
+        double l = (-rot/2);
+        double r = (rot/2);
+        cif.DriveMotors(l, r);
+
     }
 
-    public void goTornRigth(){
-        cif.DriveMotors(0.15, 0);
+    public void goRight(){
+        double deltaC = Math.abs(Math.abs(compass_goal)-Math.abs(compass));
+        double rot = 0.5 * deltaC; //
+        double l = (rot/2);
+        double r = (-rot/2);
+        cif.DriveMotors(l, r);
     }
 
     public void goAhead(){ //yr -> y inicial -> funcao de andar para a frente
+        double deltaY;
+        double deltaX;
         if(Eixo()){ // ele esta virado na horizontal
-            double deltaY = next.getY() - y; //Y que quero alcançar - y atual 
-            double deltaX = next.getX() - x;
+            deltaY = next.getY() - y; //Y que quero alcançar - y atual 
+            deltaX = next.getX() - x;
         }
         else{ //robo no eixo veritcal
-            double deltaY = next.getY() - y; //Y que quero alcançar - y atual 
-            double deltaX = next.getX() - x; //X que quero alcançar - x atual
+            deltaY = next.getY() - y; //Y que quero alcançar - y atual 
+            deltaX = next.getX() - x; //X que quero alcançar - x atual
         }
             double lin = 0.5 * deltaX * nivel(); //nivel corresponde a ser + ou - no eixo
             double rot = 0.5 * deltaY * nivel(); //
@@ -373,7 +405,7 @@ public class jClientC2 {
 
     
     //para nao ir para cima quando esta a rodado para baixo ou para a esquerda (-90 e 180)
-    public double nivel(){ //alinhador dos goAheads positivo ou negativo
+    public double nivel(){ //alinhador dos goAheads positivo(1) ou negativo(-1)
         if(compass>-45 && compass<135) return 1;
         return -1;
     }
@@ -461,14 +493,12 @@ public class jClientC2 {
 
     private String robName;
     private double irSensor0, irSensor1, irSensor2, irSensor3, compass, compass_goal, x, y, x0,y0; 
+    //sensores, bussola, bussola para o objetivo, coordenadas, coordenadas iniciais
     // compass_goal para onde ele vai ter de rodar
-    private LinkedList<vetor> CoordAntigas = new LinkedList<vetor>(); //onde ja esteve
-    private LinkedList<vetor> CoordCruz = new LinkedList<vetor>(); // coordenadas do cruzamentos
     private beaconMeasure beacon;
     private int ground;
-    private boolean collision;
+    private boolean collision,init; //initial position?
     private vetor next = new vetor(); //para onde vai a seguir
-    private vetor atual = new vetor(x,y); //vetor coordenadas atuais
     private State state;
 
     private int beaconToFollow;
