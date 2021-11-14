@@ -430,6 +430,35 @@ public class jClientC2 {
         //definir compass_goal
     }
     public void writeMap(vetor v, String a){ //Escreve na coordenada dada o simbolo correspondente "X - | "
+        // o vetor v danos as coordenadas para preencher, aquelas do meio da celula tbm?????
+        File fic = new File( "maq.txt" );
+        Scanner fin = new File (fic); //ficheiro de entrada = ficheiro de saida
+        if (!fic.exists()){
+            fic.createNewFile(); 
+        }
+        PrintWrite write = new PrintWrite(fic);
+
+        double linha =0;
+        double coluna =0;
+        while (fin.hasNextLine()){ //vamos ver na linha
+            
+            linha++;
+            if(linha == v.getY()){
+                //percorrer nas colunas
+                while (){
+                    colunas++;
+                    if(colunas==v.getX()){
+                        write.print(a); //escrever o a no sitio certo
+                        break;
+                    }
+                }
+                break;
+            }
+           
+        }
+
+
+        write.close()
 
     }
 
