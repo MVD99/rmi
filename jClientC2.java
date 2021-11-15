@@ -399,41 +399,52 @@ public class jClientC2 {
 
 
     public void mappingDecode() throws IOException{
-        //detetar paredes
+        //detetar paredes, se for ou | ou -, se n for entao "x"
         if(ParedeDireita()){
-            if(!onMap(coordDir())) //verificar se já está escrito
-                if(par(coordDir()))
-                    addToMap(coordDir(),"|");
-                else
-                    addToMap(coordDir(),"-");
-
+            if(par(coordDir()))
+                addToMap(coordDir(),"|");
+            else
+                addToMap(coordDir(),"-");
+        }else{
+            addToMap(coordDir(), "X");
         }
         if(ParedeEsquerda()){
-            if(!onMap(coordEsq())) //verificar se já está escrito
-                if(par(coordEsq()))
-                    addToMap(coordEsq(),"|");
-                else 
-                    addToMap(coordEsq(),"-");
+            if(par(coordEsq()))
+                addToMap(coordEsq(),"|");
+            else 
+                addToMap(coordEsq(),"-");
+        }else{
+            addToMap(coordEsq(), "X");
         }
         if(ParedeFrente()){
-            if(!onMap(coordFrente())) //verificar se já está escrito
-                if(par(coordFrente()))
-                    addToMap(coordFrente(),"|");
-                else
-                    addToMap(coordFrente(),"-");
+            if(par(coordFrente()))
+                addToMap(coordFrente(),"|");
+            else
+                addToMap(coordFrente(),"-");
+        }else{
+            addToMap(coordFrente(), "X");
         }
         if(ParedeTras()){
-            if(!onMap(coordTras())) //verificar se já está escrito
-                if(par(coordTras()))
-                    addToMap(coordTras(),"|");
-                else
-                    addToMap(coordTras(),"-");
+            if(par(coordTras()))
+                addToMap(coordTras(),"|");
+            else
+                addToMap(coordTras(),"-");
+        }else{
+            addToMap(coordTras(), "X");
         }
-        //calcular next
+        //adicionar posicao atual a posicoes ja visitadas
+        //calcular next 
+        vetor vatual= new vetor(Math.round(x),Math.round(y));
+        coordsAntigas.addLast(vatual);             //adicionar coordenada atual a lista de onde ele ja esteve
+        List viz = possiveis();                    //Tem lista com todas as posicoes possiveis de ir na proximidade
+        
+        //calculo do custo
+        
+        //definir compass_goal
         
         //calcular o estado quando esta no centro da celula
         
-        //definir compass_goal
+        
     }
 
     public void fillMap(){ //chamada no estado init para encher o mapa com " "
@@ -446,15 +457,47 @@ public class jClientC2 {
     }
 
     public void addToMap(vetor v, String a) { //escrever no coords a String certa REVER
-        
-        for(int i=1; i<28;i++){
-            for (int j=1; j<56; j++){
-                if(v.getX()==i && v.getY()==j){
-                    coords[i][j]= a;
-                    break;
+        //Adicionar verificacao de empty no array
+        if(!onMap(v)){
+            for(int i=1; i<28;i++){
+                for (int j=1; j<56; j++){
+                    if(v.getX()==i && v.getY()==j){
+                        coords[i][j]= a;
+                        break;
+                    }
                 }
             }
         }
+        else ;
+    }
+
+    public List<vetor> possiveis(){ // devolve um vetor com os vizinhos onde ele ainda nao esteve
+        List r = new List<vetor>();
+        //Começar por verificar vizinhos
+        if ((coords[coordDir().getX()][coordDir().getY()]=="X") && !coordsAntigas.contains(coordDir())){
+            r.add(coordDir());
+        }
+        if ((coords[coordEsq().getX()][coordEsq().getY()]=="X") && !coordsAntigas.contains(coordEsq())){
+            r.add(coordEsq());
+        }
+        if ((coords[coordFrente().getX()][coordFrente().getY()]=="X") && !coordsAntigas.contains(coordFrente())){
+            r.add(coordFrente());
+        }
+        if ((coords[coordTras().getX()][coordTras().getY()]=="X") && !coordsAntigas.contains(coordTras())){
+            r.add(coordTras());
+        }
+        //verificar o resto do mapa
+        //percorre o mapa todo e ve se é X
+        vetor l = new vetor();
+        for(int i=1; i<28;i++){
+            for (int j=1; j<56; j++){
+                l.setXY(i,j);
+                if((coords[i][j] == "X") && !coordsAntigas.contains(l) && l.getY()%2==0){ // ve quando esta no meio das celulas
+                    r.add(l);
+                }
+            }
+        }
+        return r;
     }
 
 
@@ -474,7 +517,7 @@ public class jClientC2 {
             write.print(a);
         }
         fin.close();
-        write.close();
+        write.close();    
     }
 
     public boolean onMap(vetor v) throws IOException{  //Verificar se as coordenadas dadas já estão preenchidas
@@ -604,6 +647,8 @@ public class jClientC2 {
     private State state;
     private int beaconToFollow;
     private String[][] coords = new String[28][56]; //linhas, colunas
+    private LinkedList<vetor> coordsAntigas = new LinkedList<vetor>(); //linhas, colunas
+
 
     public class vetor{
         private double x;
