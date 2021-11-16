@@ -288,6 +288,7 @@ public class jClientC2 {
                     }
                     else{
                         goAhead(); //andar -> funcao de andar
+                        //aumenta custo de 2
                         break;
                     }
                 case RL:
@@ -297,6 +298,7 @@ public class jClientC2 {
                     }
                     else{
                         goLeft(); //esquerda -> funcao de rodar
+                        //aumenta custo de 1
                         break;
                     }
 
@@ -307,11 +309,13 @@ public class jClientC2 {
                     }
                     else{
                         goRight(); //rodar direita -> funcao de rodar
+                        //aumenta custo de 1
                         break;
                     }
                 case INV: // quando ele tievr que inverter
                     //ele roda uma vez e depois o estado muda para o rr automaticamente e acaba a inversao
                     goRight();
+                    //aumenta custo de 1
                     break;
 
                 case END:
@@ -407,6 +411,11 @@ public class jClientC2 {
                 addToMap(coordDir(),"-");
         }else{
             addToMap(coordDir(), "X");
+            if (coorDir().getY()%2==0){ //se nao for aquele X no meio das paredes
+                //v1 -> v2
+                tree.v2.setParent 
+                v2.setParent = v1
+            }
         }
         if(ParedeEsquerda()){
             if(par(coordEsq()))
@@ -437,6 +446,10 @@ public class jClientC2 {
         vetor vatual= new vetor(Math.round(x),Math.round(y));
         coordsAntigas.addLast(vatual);             //adicionar coordenada atual a lista de onde ele ja esteve
         List viz = possiveis();                    //Tem lista com todas as posicoes possiveis de ir na proximidade
+        
+        //tree.setChild(vatual);
+
+        // arvore
         
         //calculo do custo
         
@@ -624,7 +637,7 @@ public class jClientC2 {
     }
 
 
-    public int deadlock(){ //return 2 "normal", 3 "beco", 1 ou 0 "cruzamento";
+    /*public int deadlock(){ //return 2 "normal", 3 "beco", 1 ou 0 "cruzamento";
         int c=0;
         if(irSensor0>=2.3) c++; //2.5
         if(irSensor1>=2.3) c++;
@@ -632,12 +645,12 @@ public class jClientC2 {
         if(irSensor3>=2.3) c++;
         return c;
     }
-
+    */
 
     //VARIAVEIS
 
     private String robName;
-    private double irSensor0, irSensor1, irSensor2, irSensor3, compass, compass_goal, x, y, x0,y0;
+    private double irSensor0, irSensor1, irSensor2, irSensor3, compass, compass_goal, x, y, x0,y0, custo;
     //sensores, bussola, bussola para o objetivo, coordenadas, coordenadas iniciais
     // compass_goal para onde ele vai ter de rodar
     private beaconMeasure beacon;
@@ -647,8 +660,8 @@ public class jClientC2 {
     private State state;
     private int beaconToFollow;
     private String[][] coords = new String[28][56]; //linhas, colunas
-    private LinkedList<vetor> coordsAntigas = new LinkedList<vetor>(); //linhas, colunas
-
+    private LinkedList<vetor> coordsAntigas = new LinkedList<vetor>(); //linhas, colunas 
+    private Tree<T> tree = new Tree<T>(vetor(x0,y0)); //root -> I
 
     public class vetor{
         private double x;
@@ -682,6 +695,84 @@ public class jClientC2 {
             y=ny;
         }
     }
+
+    //classe da arvore
+    /* public class Tree<T> {
+        private Node<T> root;
+
+        public Tree(T rootData) {
+            root = new Node<T>();
+            root.data = rootData;
+            root.children = new ArrayList<Node<T>>();
+        }
+
+        @Override
+        public Node<T> getParent(T vetor) {// retorna o pai
+            return vetor.parent;
+        }
+
+        @Override
+        public ArrayList<Node<T>> getChildren(T vetor){
+            return vetor.children;//lista com os filhos
+        }
+
+        public static class Node<T> {
+                private T data; // dados do no -> no nosso caso e vetor
+                private Node<T> parent;
+                private List<Node<T>> children;
+            
+            
+            public void setParent(vetor c, vetor p){
+                c.parent=p;
+            }
+
+            public void setChild(vetor p, vetor c){
+                p.children.addLast(c);
+            }
+
+            public Node<T> getParent(vetor c){
+                return c.parent;
+            }
+
+            public List<Node<T>> getChild(vetor p){
+                return p.children;
+            }
+            public Node<T> addChild(vetor child){
+                Node<T> childNode  =new Node<T>(child) {
+                childNode.parent = this;
+                this.children.add(childNode);
+                return childNode;
+                };
+            }
+        }
+    }*/
+
+    public class TreeNode<T> implements Iterable<TreeNode<T>> {
+
+        T data;
+        TreeNode<T> parent;
+        List<TreeNode<T>> children;
+        List<TreeNode<T>> cost;
+
+        public TreeNode(T data) {
+            this.data = data;
+            this.children = new LinkedList<TreeNode<T>>();
+            this.costo = new LinkedList<>();
+        }
+
+        public TreeNode<T> addChild(T child) {
+            TreeNode<T> childNode = new TreeNode<T>(child);
+            childNode.parent = this;
+            this.children.add(childNode);
+            cost.addLast(custo)
+            return childNode;
+        }
+
+        // other features ...
+
+    }
+
+
 };
 
 
