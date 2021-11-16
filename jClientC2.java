@@ -282,13 +282,15 @@ public class jClientC2 {
 
                 case GA: // andar para a frente
                     if(targetReached()){
+                       
                         mappingDecode(); //vai darnos para qual estado ir... aproveitar alguns dos ifs que tinhamos
-
-                        break; //se estivermos no meio da funcao
                     }
                     else{
                         goAhead(); //andar -> funcao de andar
                         //aumenta custo de 2
+                       /* int i = position_custo()
+                        if (i>=0){tree.cost.get(i)+=1;}
+                        else{System.out.print("ES UMA ALEIJADA");} */
                         break;
                     }
                 case RL:
@@ -299,6 +301,9 @@ public class jClientC2 {
                     else{
                         goLeft(); //esquerda -> funcao de rodar
                         //aumenta custo de 1
+                       /* int i = position_custo()
+                        if (i>=0){tree.cost.get(i)+=1;}
+                        else{System.out.print("ES UMA ALEIJADA");}*/
                         break;
                     }
 
@@ -310,12 +315,19 @@ public class jClientC2 {
                     else{
                         goRight(); //rodar direita -> funcao de rodar
                         //aumenta custo de 1
+                        /*int i = position_custo()
+                        if (i>=0){tree.cost.get(i)+=1;}
+                        else{System.out.print("ES UMA ALEIJADA");}*/
                         break;
                     }
                 case INV: // quando ele tievr que inverter
                     //ele roda uma vez e depois o estado muda para o rr automaticamente e acaba a inversao
                     goRight();
                     //aumenta custo de 1
+                    /*int i = position_custo()
+                    if (i>=0){tree.cost.get(i)+=1;}
+                    else{System.out.print("ES UMA ALEIJADA");}*/
+
                     break;
 
                 case END:
@@ -345,6 +357,15 @@ public class jClientC2 {
         }
     }
 
+    //da nos a posicao onde colocar o custo no array -> associa-lo a cada no (a cada posicao)
+    public int position_custo(){
+        for (int i  =0;i<tree.children.length();i++){
+            if (tree.children.get(i).getX()==x && tree.children.get(i).getY()==y){
+                return i;
+            }
+        }
+        return -1;
+    }
 
     public boolean targetReached(){ //chegou ao objetivo?
         if (Math.abs(x-next.getX())<=0.2 && Math.abs(y-next.getY())<=0.2){
@@ -403,6 +424,7 @@ public class jClientC2 {
 
 
     public void mappingDecode() throws IOException{
+        //mapear
         //detetar paredes, se for ou | ou -, se n for entao "x"
         if(ParedeDireita()){
             if(par(coordDir()))
@@ -411,11 +433,11 @@ public class jClientC2 {
                 addToMap(coordDir(),"-");
         }else{
             addToMap(coordDir(), "X");
-            if (coorDir().getY()%2==0){ //se nao for aquele X no meio das paredes
+          /*  if (coorDir().getY()%2==0){ //se nao for aquele X no meio das paredes
                 //v1 -> v2
-                tree.v2.setParent 
-                v2.setParent = v1
-            }
+                //tree.v2.setParent 
+                //v2.setParent = v1
+            }*/
         }
         if(ParedeEsquerda()){
             if(par(coordEsq()))
@@ -441,21 +463,61 @@ public class jClientC2 {
         }else{
             addToMap(coordTras(), "X");
         }
+
+        //--------------------- calcular a posicao seguinte--------------------------------
+
         //adicionar posicao atual a posicoes ja visitadas
         //calcular next 
         vetor vatual= new vetor(Math.round(x),Math.round(y));
         coordsAntigas.addLast(vatual);             //adicionar coordenada atual a lista de onde ele ja esteve
-        List viz = possiveis();                    //Tem lista com todas as posicoes possiveis de ir na proximidade
-        
-        //tree.setChild(vatual);
+        List viz = vizinhos(); // fazer a funcao vizinhos -> devolve as posicoes a volta sem parede
+        List pos = possiveis();                    //Tem lista com todas as posicoes possiveis de ir na proximidade
+        //o no atual tem que passar a ser no pai dos possiveis
 
-        // arvore
-        
-        //calculo do custo
+        // o no onde o robo esta tem que passar a ser pai----- é feito automaticamente???
+            
+        for (int i = 0; i<viz.size();i++){ //acrescentar os nos filhos possiveis
+            tree.addChild(viz); // adiciona os nos possiveis a partir da posicao onde ele esta
+            //se for a andar para a frente = custo 2
+            // -------------- o compass, o next e o state e no proximo for----- 
+            if (viz.get(i) == coordFrente()){ // se estiver no estado de andar para a frente o custo e compasso vao ser...
+                tree.cost.get(i)+=2;
+                compass_goal=compass;
+                //state = State.GA;
+            }else if(viz.get(i)==coordEsq()){ // se for rodar
+                tree.cost.get(i)+=1;
+                if(compass==180){
+                    compass=-compass;
+                }
+                compass_goal=compass+90;
+                //state = State.RL;
+            }else if(viz.get(i)==coordDir()){ //rodar para a direita
+                tree.cost.get(i)+=1;
+                compass_goal=Math.abs(compass)-90;
+                //state = State.RR;
+            }else if(viz.get(i)==coordTras()){ //rodar para tras
+                tree.cost.get(i)+=1;
+                compass_goal=Math.abs(compass)-180;
+                //state = State.INV;
+            }else{System.out.print("ES UMA ALEIJADA");}
+        }
+
+        // percorrer a arvore e ver em que no ele esta neste momento e ver qual dos filhos desse no tem menor custo
+        for(int i = 0;i<tree.size();i++){ //percorrer a arvore ate ao no onde o robo esta
+            if(tree.parent.getX()==x && tree.parent.getY()==y){
+                // a posicao dos nos dos filhos = a posicao no array do custo
+                //vai ver os filhos desse no (posicao deles) e depois ve qual deles tem menor custo -> posicao next :))))
+                break;
+            }
+        }
+
+    /*
+     */
         
         //definir compass_goal
-        
-        //calcular o estado quando esta no centro da celula
+
+
+        //calcular o estado quando esta no centro da celula -> estado seguinte
         
         
     }
@@ -661,7 +723,7 @@ public class jClientC2 {
     private int beaconToFollow;
     private String[][] coords = new String[28][56]; //linhas, colunas
     private LinkedList<vetor> coordsAntigas = new LinkedList<vetor>(); //linhas, colunas 
-    private Tree<T> tree = new Tree<T>(vetor(x0,y0)); //root -> I
+    private TreeNode<T> tree = new TreeNode<T>(vetor(x0,y0)); //root -> I
 
     public class vetor{
         private double x;
@@ -695,6 +757,41 @@ public class jClientC2 {
             y=ny;
         }
     }
+
+    //https://pt.stackoverflow.com/questions/18837/como-percorrer-uma-%C3%A1rvore-bin%C3%A1ria
+   public class TreeNode<T> implements Iterable<TreeNode<T>> {
+
+        T data;
+        TreeNode<T> parent;
+        List<TreeNode<T>> children;
+        List<TreeNode<T>> cost;
+
+        public TreeNode(T data) {
+            this.data = data;
+            this.children = new LinkedList<TreeNode<T>>();
+            this.cost = new LinkedList<>();
+        }
+
+        public TreeNode<T> addChild(T child) {
+            TreeNode<T> childNode = new TreeNode<T>(child);
+            childNode.parent = this;
+            this.children.add(childNode);
+            cost.addLast(custo);
+            return childNode;
+        }
+
+        // other features ...
+
+    }
+
+    // se e grafo ou arvore
+    //custo 
+    //scanner
+
+
+
+
+
 
     //classe da arvore
     /* public class Tree<T> {
@@ -746,32 +843,6 @@ public class jClientC2 {
             }
         }
     }*/
-
-    public class TreeNode<T> implements Iterable<TreeNode<T>> {
-
-        T data;
-        TreeNode<T> parent;
-        List<TreeNode<T>> children;
-        List<TreeNode<T>> cost;
-
-        public TreeNode(T data) {
-            this.data = data;
-            this.children = new LinkedList<TreeNode<T>>();
-            this.costo = new LinkedList<>();
-        }
-
-        public TreeNode<T> addChild(T child) {
-            TreeNode<T> childNode = new TreeNode<T>(child);
-            childNode.parent = this;
-            this.children.add(childNode);
-            cost.addLast(custo)
-            return childNode;
-        }
-
-        // other features ...
-
-    }
-
 
 };
 
