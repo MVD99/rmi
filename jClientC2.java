@@ -234,6 +234,7 @@ public class jClientC2 {
         x0=cif.GetX();
         y0=cif.GetY();
         init=true;
+        fillMap();
         while(true) {
                 cif.ReadSensors(); // ler os sensores .....
                 //criar as variaveis....
@@ -271,63 +272,50 @@ public class jClientC2 {
             if(cif.IsBeaconReady(beaconToFollow))
                     beacon = cif.GetBeaconSensor(beaconToFollow);
 
-            System.out.println("Measures: ir0=" + irSensor0 + " ir1=" + irSensor1 + " ir2=" + irSensor2 + " ir3="+ irSensor3+"\n" + "bussola=" + compass + " GPS-X=" + x + " GPS-y=" + y  +"\n");
-
-
+            if(targetReached()){
+                System.out.println("Measures: ir0=" + irSensor0 + " ir1=" + irSensor1 + " ir2=" + irSensor2 + " ir3="+ irSensor3+"\n" + "bussola=" + compass + " GPS-X=" + x + " GPS-y=" + y);
+                System.out.println("f: "+ParedeFrente()+" esq: "+ParedeEsquerda()+" dir: "+ParedeDireita()+" tras: "+ParedeTras());
+                System.out.println("init: "+init+" targetReached? "+targetReached()+" Visited? "+coordsAntigas.contains(next) +"\n");
+            }
             //funcao geral: detetar se está no centro, se sim corre mapping e calcular next, se nao manda andar para onde é preciso
             //andar implica ou curvas ou ahead
+            
             state = Estados();
-
+            System.out.print("fui chamada");
+            System.out.println("Estado: "+state);
             switch(state) { /////é aqui que mexemos
 
                 case GA: // andar para a frente
                     if(targetReached()){
-                       
-                        mappingDecode(); //vai darnos para qual estado ir... aproveitar alguns dos ifs que tinhamos
+                        mappingDecode();
                     }
                     else{
-                        goAhead(); //andar -> funcao de andar
-                        //aumenta custo de 2
-                       /* int i = position_custo()
-                        if (i>=0){tree.cost.get(i)+=1;}
-                        else{System.out.print("ES UMA ALEIJADA");} */
-                        break;
+                        goAhead(); //andar -> funcao de andar   
                     }
+                    break;
+
                 case RL:
                     if(targetReached()){ //se nao atualizar os next
-                        mappingDecode();
-                        break; //se estivermos no meio da funcao
+                        mappingDecode(); //se estivermos no meio da funcao
                     }
                     else{
                         goLeft(); //esquerda -> funcao de rodar
-                        //aumenta custo de 1
-                       /* int i = position_custo()
-                        if (i>=0){tree.cost.get(i)+=1;}
-                        else{System.out.print("ES UMA ALEIJADA");}*/
-                        break;
                     }
+                    break;
 
                 case RR:
                     if(targetReached()){ //se nao atualizar os next
                         mappingDecode();
-                        break; //se estivermos no meio da funcao
                     }
                     else{
                         goRight(); //rodar direita -> funcao de rodar
-                        //aumenta custo de 1
-                        /*int i = position_custo()
-                        if (i>=0){tree.cost.get(i)+=1;}
-                        else{System.out.print("ES UMA ALEIJADA");}*/
-                        break;
                     }
+                    break;
+
                 case INV: // quando ele tievr que inverter
                     //ele roda uma vez e depois o estado muda para o rr automaticamente e acaba a inversao
                     goRight();
-                    //aumenta custo de 1
-                    /*int i = position_custo()
-                    if (i>=0){tree.cost.get(i)+=1;}
-                    else{System.out.print("ES UMA ALEIJADA");}*/
-
+                    
                     break;
 
                 case END:
@@ -340,35 +328,29 @@ public class jClientC2 {
     public State Estados() throws IOException{
         if(init==true){
             init=false;
-            fillMap(); //preencher arrays de coords com " "
-            writeMap(); //inicializar o ficheiro mapa
             return State.GA;
         }
-        if((compass_goal!=compass) && Math.abs(compass-compass_goal)>=10){ //VERIFICAR SE 10º É MUITO
+        if(Math.abs(compass-compass_goal)>=10){ //VERIFICAR SE 10º É MUITO
             if(Math.abs(compass-compass_goal)>100) return State.INV;
-            if(Eixo() && nivel() ==-1){ // se o robo estiver a apontar para a nossa esquerda
+            if(Eixo() && nivel() ==-1){                 // robo a apontar +-180
                 if(compass_goal==-90) return State.RL;
                 else return State.RR;
             }
-            if(compass_goal>compass) return State.RL;
-            else return State.RR;
+            else if(!Eixo() && nivel()==-1){                 //robo a apontar para -90
+                if(compass_goal==180) return State.RR;
+                return State.RL;
+            }
+            else{
+                if(compass_goal>compass) return State.RL;
+                else return State.RR;
+            }
         }else{
             return State.GA;
         }
     }
-
-    //da nos a posicao onde colocar o custo no array -> associa-lo a cada no (a cada posicao)
-    public int position_custo(){
-        for (int i  =0;i<tree.children.length();i++){
-            if (tree.children.get(i).getX()==x && tree.children.get(i).getY()==y){
-                return i;
-            }
-        }
-        return -1;
-    }
-
+    
     public boolean targetReached(){ //chegou ao objetivo?
-        if (Math.abs(x-next.getX())<=0.2 && Math.abs(y-next.getY())<=0.2){
+        if (Math.abs(x-next.getX())<=0.15 && Math.abs(y-next.getY())<=0.15){
             return true;
         }else{
             return false;
@@ -401,8 +383,8 @@ public class jClientC2 {
             deltaX = next.getX() - x;
         }
         else{ //robo no eixo veritcal
-            deltaY = next.getY() - y; //Y que quero alcançar - y atual
-            deltaX = next.getX() - x; //X que quero alcançar - x atual
+            deltaX = next.getY() - y; //Y que quero alcançar - y atual
+            deltaY = next.getX() - x; //X que quero alcançar - x atual
         }
             double lin = 0.5 * deltaX * nivel(); //nivel corresponde a ser + ou - no eixo
             double rot = 0.5 * deltaY * nivel(); //
@@ -424,8 +406,15 @@ public class jClientC2 {
 
 
     public void mappingDecode() throws IOException{
-        //mapear
+        Set<vetor> localViz = new HashSet<vetor>();
+        //adicionar coordenada atual a lista de coordendas visitadas
+        vetor vatual= new vetor(Math.round(x),Math.round(y));
+        coordsAntigas.addLast(vatual);
+        visitaveis.remove(vatual);  //se tiver lá remover das visitaveis a atual 
+
+        //MAPEAR
         //detetar paredes, se for ou | ou -, se n for entao "x"
+        //se coordenada nao for parede e nao tiver sido visitada e nao estiver nos visitaveis, adiciona aos visitaveis
         if(ParedeDireita()){
             if(par(coordDir()))
                 addToMap(coordDir(),"|");
@@ -433,11 +422,10 @@ public class jClientC2 {
                 addToMap(coordDir(),"-");
         }else{
             addToMap(coordDir(), "X");
-          /*  if (coorDir().getY()%2==0){ //se nao for aquele X no meio das paredes
-                //v1 -> v2
-                //tree.v2.setParent 
-                //v2.setParent = v1
-            }*/
+            if(!coordsAntigas.contains(coord2Dir())){
+                localViz.add(coord2Dir());
+                visitaveis.add(coord2Dir());
+            }
         }
         if(ParedeEsquerda()){
             if(par(coordEsq()))
@@ -446,6 +434,10 @@ public class jClientC2 {
                 addToMap(coordEsq(),"-");
         }else{
             addToMap(coordEsq(), "X");
+            if(!coordsAntigas.contains(coord2Esq())) {
+                localViz.add(coord2Esq());
+                visitaveis.add(coord2Esq());
+            }
         }
         if(ParedeFrente()){
             if(par(coordFrente()))
@@ -454,6 +446,10 @@ public class jClientC2 {
                 addToMap(coordFrente(),"-");
         }else{
             addToMap(coordFrente(), "X");
+            if(!coordsAntigas.contains(coord2Frente())){
+                localViz.add(coord2Frente());
+                visitaveis.add(coord2Frente());
+            }
         }
         if(ParedeTras()){
             if(par(coordTras()))
@@ -462,67 +458,40 @@ public class jClientC2 {
                 addToMap(coordTras(),"-");
         }else{
             addToMap(coordTras(), "X");
-        }
-
-//--------------------- calcular a posicao seguinte--------------------------------
-
-
-        //adicionar posicao atual a posicoes ja visitadas
-        //calcular next 
-        vetor vatual= new vetor(Math.round(x),Math.round(y));
-        coordsAntigas.addLast(vatual);             //adicionar coordenada atual a lista de onde ele ja esteve
-        List viz = vizinhos(); // fazer a funcao vizinhos -> devolve as posicoes a volta sem parede
-        List pos = possiveis();                    //Tem lista com todas as posicoes possiveis de ir na proximidade
-        
-
-        
-            
-        for (int i = 0; i<viz.size();i++){ //acrescentar os nos filhos possiveis
-            tree.addChild(viz); // adiciona os nos possiveis a partir da posicao onde ele esta
-            //se for a andar para a frente = custo 2
-            // -------------- o compass, o next e o state e no proximo for----- 
-            if (viz.get(i) == coordFrente()){ // se estiver no estado de andar para a frente o custo e compasso vao ser...
-                tree.cost.get(i)+=2;
-                compass_goal=compass;
-                //state = State.GA;
-            }else if(viz.get(i)==coordEsq()){ // se for rodar
-                tree.cost.get(i)+=1;
-                if(compass==180){
-                    compass=-compass;
-                }
-                compass_goal=compass+90;
-                //state = State.RL;
-            }else if(viz.get(i)==coordDir()){ //rodar para a direita
-                tree.cost.get(i)+=1;
-                compass_goal=Math.abs(compass)-90;
-                //state = State.RR;
-            }else if(viz.get(i)==coordTras()){ //rodar para tras
-                tree.cost.get(i)+=1;
-                compass_goal=Math.abs(compass)-180;
-                //state = State.INV;
-            }else{System.out.print("ES UMA ALEIJADA");}
-        }
-
-        // percorrer a arvore e ver em que no ele esta neste momento e ver qual dos filhos desse no tem menor custo
-        for(int i = 0;i<tree.size();i++){ //percorrer a arvore ate ao no onde o robo esta
-            if(tree.parent.getX()==x && tree.parent.getY()==y){
-                // a posicao dos nos dos filhos = a posicao no array do custo
-                //vai ver os filhos desse no (posicao deles) e depois ve qual deles tem menor custo -> posicao next :))))
-                break;
+            if(!coordsAntigas.contains(coord2Tras())){
+                visitaveis.add(coord2Tras());
             }
         }
 
-    /*
-     */
+        if(visitaveis.isEmpty()){end();} // quando visitar tudo
+
+//--------------------- calcular a posicao seguinte--------------------------------
+        //definir tambem compass_goal
+        if(localViz.size()==0) next.setXY(visitaveis.iterator().next());
+        else{
+            if(visitaveis.size()==0){end();}
+            next.setXY(localViz.iterator().next());
+            if(next.getX()==coord2Frente().getX() && next.getY()==coord2Frente().getY()) compass_goal=compass;
+            if(next.getX()==coord2Dir().getX() && next.getY()==coord2Dir().getY()) compass_goal=compass-90;
+            if(next.getX()==coord2Esq().getX() && next.getY()==coord2Esq().getY()) compass_goal=compass+90;
+            if(next.getX()==coord2Tras().getX() && next.getY()==coord2Tras().getY())compass_goal=compass-180;
+        }
+        arrendAngulo();
+        System.out.println("next x= "+next.getX()+" y= "+next.getY()+" compass_goal= "+compass_goal);
         
-        //definir compass_goal
-
-
         //calcular o estado quando esta no centro da celula -> estado seguinte
         
         
     }
 
+    public LinkedList<vetor> vizinhos(){
+        LinkedList <vetor> viz = new LinkedList<>();
+        if(!ParedeFrente()){ viz.add(coord2Frente()); }
+        if(!ParedeDireita()){ viz.add(coord2Dir()); }
+        if(!ParedeEsquerda()){ viz.add(coord2Esq()); }
+        if(!ParedeTras()){ viz.add(coord2Tras()); }
+        return viz;
+    }
     public void fillMap(){ //chamada no estado init para encher o mapa com " "
         for(int i=0; i<28;i++){
             for (int j=0; j<56; j++){
@@ -532,7 +501,7 @@ public class jClientC2 {
         }
     }
 
-    public void addToMap(vetor v, String a) { //escrever no coords a String certa REVER
+    public void addToMap(vetor v, String a) throws IOException { //escrever no coords a String certa REVER
         //Adicionar verificacao de empty no array
         if(!onMap(v)){
             for(int i=1; i<28;i++){
@@ -544,36 +513,6 @@ public class jClientC2 {
                 }
             }
         }
-        else ;
-    }
-
-    public List<vetor> possiveis(){ // devolve um vetor com os vizinhos onde ele ainda nao esteve
-        List r = new List<vetor>();
-        //Começar por verificar vizinhos
-        if ((coords[coordDir().getX()][coordDir().getY()]=="X") && !coordsAntigas.contains(coordDir())){
-            r.add(coordDir());
-        }
-        if ((coords[coordEsq().getX()][coordEsq().getY()]=="X") && !coordsAntigas.contains(coordEsq())){
-            r.add(coordEsq());
-        }
-        if ((coords[coordFrente().getX()][coordFrente().getY()]=="X") && !coordsAntigas.contains(coordFrente())){
-            r.add(coordFrente());
-        }
-        if ((coords[coordTras().getX()][coordTras().getY()]=="X") && !coordsAntigas.contains(coordTras())){
-            r.add(coordTras());
-        }
-        //verificar o resto do mapa
-        //percorre o mapa todo e ve se é X
-        vetor l = new vetor();
-        for(int i=1; i<28;i++){
-            for (int j=1; j<56; j++){
-                l.setXY(i,j);
-                if((coords[i][j] == "X") && !coordsAntigas.contains(l) && l.getY()%2==0){ // ve quando esta no meio das celulas
-                    r.add(l);
-                }
-            }
-        }
-        return r;
     }
 
 
@@ -632,25 +571,6 @@ public class jClientC2 {
         return false;
     }
 
-    //ver se existe parede nas 4 direcoes
-    public boolean ParedeFrente(){
-        if(irSensor0>=2.3) return true;
-        return false;
-    }
-    public boolean ParedeTras(){
-        if(irSensor3>=2.3) return true;
-        return false;
-    }
-    public boolean ParedeDireita(){
-        if(irSensor2>=2.3) return true;
-        return false;
-    }
-    public boolean ParedeEsquerda(){
-        if(irSensor1>=2.3) return true;
-        return false;
-    }
-
-
 
     static void print_usage() {
              System.out.println("Usage: java jClientC2 [--robname <robname>] [--pos <pos>] [--host <hostname>[:<port>]] [--map <map_filename>]");
@@ -663,57 +583,109 @@ public class jClientC2 {
                System.out.println(map.labMap[r]);
            }
     }
-
+    
+    public void end(){
+        
+    }
 
     //AUXILIARES
+    //ver se existe parede nas 4 direcoes
+    public boolean ParedeFrente(){
+        if(irSensor0>=2.0) return true;
+        return false;
+    }
+    public boolean ParedeTras(){
+        if(irSensor3>=2.0) return true;
+        return false;
+    }
+    public boolean ParedeDireita(){
+        if(irSensor2>=2.0) return true;
+        return false;
+    }
+    public boolean ParedeEsquerda(){
+        if(irSensor1>=2.0) return true;
+        return false;
+    }
+
+    //Dar coordenadas
     public vetor coordEsq(){
         vetor v= new vetor(0,0);
-        if(compass==0) v.setXY(x,y+1);
-        else if(compass==90) v.setXY(x-1,y);
+        if(compass<45 && compass >=-45) v.setXY(x,y+1);
+        else if(compass>=45 && compass <135) v.setXY(x-1,y);
         else if(compass==-90) v.setXY(x+1,y);
         else v.setXY(x,y-1);
         return v;
     }
     public vetor coordDir(){
         vetor v= new vetor(0,0);
-        if(compass==0) v.setXY(x,y-1);
-        else if(compass==90) v.setXY(x+1,y);
-        else if(compass==-90) v.setXY(x-1,y);
+        if(compass<45 && compass >=-45) v.setXY(x,y-1);
+        else if(compass>=45 && compass <135) v.setXY(x+1,y);
+        else if(compass<-45 && compass >= -135) v.setXY(x-1,y);
         else v.setXY(x,y+1);
         return v;
     }
     public vetor coordFrente(){
         vetor v= new vetor(0,0);
-        if(compass==0) v.setXY(x+1,y);
-        else if(compass==90) v.setXY(x,y+1);
-        else if(compass==-90) v.setXY(x,y-1);
+        if(compass<45 && compass >=-45) v.setXY(x+1,y);
+        else if(compass>=45 && compass <135) v.setXY(x,y+1);
+        else if(compass<-45 && compass >= -135) v.setXY(x,y-1);
         else v.setXY(x-1,y);
         return v;
     }
     public vetor coordTras(){
         vetor v= new vetor(0,0);
-        if(compass==0)  v.setXY(x-1,y);
-        else if(compass==90)  v.setXY(x,y-1);
-        else if(compass==-90)  v.setXY(x,y+1);
+        if(compass<45 && compass >=-45)  v.setXY(x-1,y);
+        else if(compass>=45 && compass <135)  v.setXY(x,y-1);
+        else if(compass<-45 && compass >= -135)  v.setXY(x,y+1);
         else  v.setXY(x+1,y);
         return v;
     }
 
-
-    /*public int deadlock(){ //return 2 "normal", 3 "beco", 1 ou 0 "cruzamento";
-        int c=0;
-        if(irSensor0>=2.3) c++; //2.5
-        if(irSensor1>=2.3) c++;
-        if(irSensor2>=2.3) c++;
-        if(irSensor3>=2.3) c++;
-        return c;
+    //2 coordenadas -> centro da celula
+    public vetor coord2Esq(){
+        vetor v= new vetor(0,0);
+        if(compass<45 && compass >=-45) v.setXY(x,y+2);
+        else if(compass>=45 && compass <135) v.setXY(x-2,y);
+        else if(compass<-45 && compass >= -135) v.setXY(x+2,y);
+        else v.setXY(x,y-2);
+        return v;
     }
-    */
+    public vetor coord2Dir(){
+        vetor v= new vetor(0,0);
+        if(compass<45 && compass >=-45) v.setXY(x,y-2);
+        else if(compass>=45 && compass <135) v.setXY(x+2,y);
+        else if(compass<-45 && compass >= -135) v.setXY(x-2,y);
+        else v.setXY(x,y+2);
+        return v;
+    }
+    public vetor coord2Frente(){
+        vetor v= new vetor(0,0);
+        if(compass<45 && compass >=-45) v.setXY(x+2,y);
+        else if(compass>=45 && compass <135) v.setXY(x,y+2);
+        else if(compass<-45 && compass >= -135) v.setXY(x,y-2);
+        else v.setXY(x-2,y);
+        return v;
+    }
+    public vetor coord2Tras(){
+        vetor v= new vetor(0,0);
+        if(compass<45 && compass >=-45)  v.setXY(x-2,y);
+        else if(compass>=45 && compass <135)  v.setXY(x,y-2);
+        else if(compass<-45 && compass >= -135)  v.setXY(x,y+2);
+        else  v.setXY(x+2,y);
+        return v;
+    }
+
+    public void arrendAngulo(){
+        if(compass_goal<45 && compass_goal >=-45)  compass_goal=0;
+        else if(compass_goal>=45 && compass_goal <135)  compass_goal=90;
+        else if(compass_goal<-45 && compass_goal >= -135)  compass_goal=-90;
+        else compass_goal=180;
+    }
 
     //VARIAVEIS
 
     private String robName;
-    private double irSensor0, irSensor1, irSensor2, irSensor3, compass, compass_goal, x, y, x0,y0, custo;
+    private double irSensor0, irSensor1, irSensor2, irSensor3, compass, compass_goal, x, y, x0,y0;
     //sensores, bussola, bussola para o objetivo, coordenadas, coordenadas iniciais
     // compass_goal para onde ele vai ter de rodar
     private beaconMeasure beacon;
@@ -722,11 +694,10 @@ public class jClientC2 {
     private vetor next = new vetor(); //para onde vai a seguir
     private State state;
     private int beaconToFollow;
-    private String[][] coords = new String[28][56]; //linhas, colunas
+    private String[][] coords = new String[28][56]; //linhas, colunas, mapa completo
     private LinkedList<vetor> coordsAntigas = new LinkedList<vetor>(); //linhas, colunas
+    private Set<vetor> visitaveis = new HashSet<vetor>();
     
-    private TreeNode<T> tree = new TreeNode<T>(vetor(x0,y0)); //root -> I
-
     public class vetor{
         private double x;
         private double y;
@@ -759,11 +730,6 @@ public class jClientC2 {
             y=ny;
         }
     }
-
-    // se e grafo ou arvore
-    //custo 
-    //scanner
-
 };
 
 
