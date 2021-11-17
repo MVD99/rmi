@@ -464,7 +464,8 @@ public class jClientC2 {
             addToMap(coordTras(), "X");
         }
 
-        //--------------------- calcular a posicao seguinte--------------------------------
+//--------------------- calcular a posicao seguinte--------------------------------
+
 
         //adicionar posicao atual a posicoes ja visitadas
         //calcular next 
@@ -472,9 +473,9 @@ public class jClientC2 {
         coordsAntigas.addLast(vatual);             //adicionar coordenada atual a lista de onde ele ja esteve
         List viz = vizinhos(); // fazer a funcao vizinhos -> devolve as posicoes a volta sem parede
         List pos = possiveis();                    //Tem lista com todas as posicoes possiveis de ir na proximidade
-        //o no atual tem que passar a ser no pai dos possiveis
+        
 
-        // o no onde o robo esta tem que passar a ser pai----- é feito automaticamente???
+        
             
         for (int i = 0; i<viz.size();i++){ //acrescentar os nos filhos possiveis
             tree.addChild(viz); // adiciona os nos possiveis a partir da posicao onde ele esta
@@ -722,7 +723,8 @@ public class jClientC2 {
     private State state;
     private int beaconToFollow;
     private String[][] coords = new String[28][56]; //linhas, colunas
-    private LinkedList<vetor> coordsAntigas = new LinkedList<vetor>(); //linhas, colunas 
+    private LinkedList<vetor> coordsAntigas = new LinkedList<vetor>(); //linhas, colunas
+    
     private TreeNode<T> tree = new TreeNode<T>(vetor(x0,y0)); //root -> I
 
     public class vetor{
@@ -758,91 +760,9 @@ public class jClientC2 {
         }
     }
 
-    //https://pt.stackoverflow.com/questions/18837/como-percorrer-uma-%C3%A1rvore-bin%C3%A1ria
-   public class TreeNode<T> implements Iterable<TreeNode<T>> {
-
-        T data;
-        TreeNode<T> parent;
-        List<TreeNode<T>> children;
-        List<TreeNode<T>> cost;
-
-        public TreeNode(T data) {
-            this.data = data;
-            this.children = new LinkedList<TreeNode<T>>();
-            this.cost = new LinkedList<>();
-        }
-
-        public TreeNode<T> addChild(T child) {
-            TreeNode<T> childNode = new TreeNode<T>(child);
-            childNode.parent = this;
-            this.children.add(childNode);
-            cost.addLast(custo);
-            return childNode;
-        }
-
-        // other features ...
-
-    }
-
     // se e grafo ou arvore
     //custo 
     //scanner
-
-
-
-
-
-
-    //classe da arvore
-    /* public class Tree<T> {
-        private Node<T> root;
-
-        public Tree(T rootData) {
-            root = new Node<T>();
-            root.data = rootData;
-            root.children = new ArrayList<Node<T>>();
-        }
-
-        @Override
-        public Node<T> getParent(T vetor) {// retorna o pai
-            return vetor.parent;
-        }
-
-        @Override
-        public ArrayList<Node<T>> getChildren(T vetor){
-            return vetor.children;//lista com os filhos
-        }
-
-        public static class Node<T> {
-                private T data; // dados do no -> no nosso caso e vetor
-                private Node<T> parent;
-                private List<Node<T>> children;
-            
-            
-            public void setParent(vetor c, vetor p){
-                c.parent=p;
-            }
-
-            public void setChild(vetor p, vetor c){
-                p.children.addLast(c);
-            }
-
-            public Node<T> getParent(vetor c){
-                return c.parent;
-            }
-
-            public List<Node<T>> getChild(vetor p){
-                return p.children;
-            }
-            public Node<T> addChild(vetor child){
-                Node<T> childNode  =new Node<T>(child) {
-                childNode.parent = this;
-                this.children.add(childNode);
-                return childNode;
-                };
-            }
-        }
-    }*/
 
 };
 
