@@ -234,6 +234,7 @@ public class jClientC2 {
         x0=cif.GetX();
         y0=cif.GetY();
         init=true;
+        end=true;
         fillMap();
         while(true) {
                 cif.ReadSensors(); // ler os sensores .....
@@ -273,21 +274,23 @@ public class jClientC2 {
                     beacon = cif.GetBeaconSensor(beaconToFollow);
 
             if(targetReached()){
-                System.out.println("Measures: ir0=" + irSensor0 + " ir1=" + irSensor1 + " ir2=" + irSensor2 + " ir3="+ irSensor3+"\n" + "bussola=" + compass + " GPS-X=" + x + " GPS-y=" + y);
+                System.out.println("\n Measures: ir0=" + irSensor0 + " ir1=" + irSensor1 + " ir2=" + irSensor2 + " ir3="+ irSensor3+"\n" + "bussola=" + compass + " GPS-X=" + x + " GPS-y=" + y);
                 System.out.println("f: "+ParedeFrente()+" esq: "+ParedeEsquerda()+" dir: "+ParedeDireita()+" tras: "+ParedeTras());
                 System.out.println("init: "+init+" targetReached? "+targetReached()+" Visited? "+coordsAntigas.contains(next) +"\n");
             }
             //funcao geral: detetar se está no centro, se sim corre mapping e calcular next, se nao manda andar para onde é preciso
             //andar implica ou curvas ou ahead
             
+
             state = Estados();
-            System.out.print("fui chamada");
+            if(next.getX()==4 && next.getY()==0){state= State.END;}
             System.out.println("Estado: "+state);
             switch(state) { /////é aqui que mexemos
 
                 case GA: // andar para a frente
                     if(targetReached()){
                         mappingDecode();
+                        cif.DriveMotors(0.0,0.0);
                     }
                     else{
                         goAhead(); //andar -> funcao de andar   
@@ -297,6 +300,7 @@ public class jClientC2 {
                 case RL:
                     if(targetReached()){ //se nao atualizar os next
                         mappingDecode(); //se estivermos no meio da funcao
+                        cif.DriveMotors(0.0,0.0);
                     }
                     else{
                         goLeft(); //esquerda -> funcao de rodar
@@ -306,6 +310,7 @@ public class jClientC2 {
                 case RR:
                     if(targetReached()){ //se nao atualizar os next
                         mappingDecode();
+                        cif.DriveMotors(0.0,0.0);
                     }
                     else{
                         goRight(); //rodar direita -> funcao de rodar
@@ -314,12 +319,16 @@ public class jClientC2 {
 
                 case INV: // quando ele tievr que inverter
                     //ele roda uma vez e depois o estado muda para o rr automaticamente e acaba a inversao
-                    goRight();
+                    goInv();
                     
                     break;
 
                 case END:
                     cif.DriveMotors(0.0,0.0);
+                    if(end==true){
+                        end=false;
+                        writeMap();
+                    }
                     break;
             }
             return;
@@ -330,19 +339,25 @@ public class jClientC2 {
             init=false;
             return State.GA;
         }
-        if(Math.abs(compass-compass_goal)>=10){ //VERIFICAR SE 10º É MUITO
-            if(Math.abs(compass-compass_goal)>100) return State.INV;
-            if(Eixo() && nivel() ==-1){                 // robo a apontar +-180
-                if(compass_goal==-90) return State.RL;
-                else return State.RR;
+        if(Math.abs(Math.abs(compass)-Math.abs(compass_goal))>=15){ //VERIFICAR SE 10º É MUITO
+            
+            if(Math.abs(Math.abs(compass)-Math.abs(compass_goal))>110) return State.INV;
+
+            if(compass_goal == -90){
+                System.out.println("cg>c: " + compass_goal + " " +compass);
+                if(compass>-90 && compass<90) return State.RR;
+                else return State.RL;
             }
-            else if(!Eixo() && nivel()==-1){                 //robo a apontar para -90
-                if(compass_goal==180) return State.RR;
-                return State.RL;
+            else if(compass_goal == 180){
+                System.out.println("cg>c: " + compass_goal + " " +compass);
+                if(compass<0) return State.RR;
+                else return State.RL;
             }
             else{
+                System.out.println("cg>c: " + compass_goal + " " +compass);
                 if(compass_goal>compass) return State.RL;
                 else return State.RR;
+
             }
         }else{
             return State.GA;
@@ -360,36 +375,40 @@ public class jClientC2 {
 
     public void goLeft(){
         double deltaC = Math.abs(Math.abs(compass_goal)-Math.abs(compass));
-        double rot = 0.5 * deltaC; //
-        double l = (-rot/2);
-        double r = (rot/2);
+        double rot = 0.5 * deltaC;
+        double l = -rot;
+        double r = rot;
         cif.DriveMotors(l, r);
 
     }
 
     public void goRight(){
         double deltaC = Math.abs(Math.abs(compass_goal)-Math.abs(compass));
-        double rot = 0.5 * deltaC; //
-        double l = (rot/2);
-        double r = (-rot/2);
+        double rot = 0.5 * deltaC;
+        double l = rot;
+        double r = -rot;
         cif.DriveMotors(l, r);
     }
 
+    public void goInv(){
+        //compass_goal = compass - 180;
+        cif.DriveMotors(0.15,-0.15);
+    }
+
     public void goAhead(){ //yr -> y inicial -> funcao de andar para a frente
-        double deltaY;
-        double deltaX;
+        double deltaY = next.getY() - y; //Erro do Y
+        double deltaX = next.getX() - x; //Erro do X
+        double l, r;
+        double k = 0.1;
+       
         if(Eixo()){ // ele esta virado na horizontal
-            deltaY = next.getY() - y; //Y que quero alcançar - y atual
-            deltaX = next.getX() - x;
+            l =0.1 - k * deltaY * nivel(); //nivel corresponde a ser + ou - no eixo
+            r =0.1 - k * -deltaY * nivel(); // Valor maximo de velocidade menos 
         }
         else{ //robo no eixo veritcal
-            deltaX = next.getY() - y; //Y que quero alcançar - y atual
-            deltaY = next.getX() - x; //X que quero alcançar - x atual
+            l =0.1 - k * -deltaX * nivel(); //nivel corresponde a ser + ou - no eixo
+            r =0.1 - k * deltaX * nivel(); //
         }
-            double lin = 0.5 * deltaX * nivel(); //nivel corresponde a ser + ou - no eixo
-            double rot = 0.5 * deltaY * nivel(); //
-            double l = (lin+rot/2);
-            double r = (lin-rot/2);
         cif.DriveMotors(l, r);
     }
 
@@ -408,7 +427,9 @@ public class jClientC2 {
     public void mappingDecode() throws IOException{
         Set<vetor> localViz = new HashSet<vetor>();
         //adicionar coordenada atual a lista de coordendas visitadas
-        vetor vatual= new vetor(Math.round(x),Math.round(y));
+        double xin = Math.round(x);
+        double yin = Math.round(y);
+        vetor vatual= new vetor(xin,yin);
         coordsAntigas.addLast(vatual);
         visitaveis.remove(vatual);  //se tiver lá remover das visitaveis a atual 
 
@@ -467,6 +488,7 @@ public class jClientC2 {
 
 //--------------------- calcular a posicao seguinte--------------------------------
         //definir tambem compass_goal
+        
         if(localViz.size()==0) next.setXY(visitaveis.iterator().next());
         else{
             if(visitaveis.size()==0){end();}
@@ -474,14 +496,12 @@ public class jClientC2 {
             if(next.getX()==coord2Frente().getX() && next.getY()==coord2Frente().getY()) compass_goal=compass;
             if(next.getX()==coord2Dir().getX() && next.getY()==coord2Dir().getY()) compass_goal=compass-90;
             if(next.getX()==coord2Esq().getX() && next.getY()==coord2Esq().getY()) compass_goal=compass+90;
-            if(next.getX()==coord2Tras().getX() && next.getY()==coord2Tras().getY())compass_goal=compass-180;
+            if(next.getX()==coord2Tras().getX() && next.getY()==coord2Tras().getY()) compass_goal=compass-180;
         }
+        System.out.println("Compass_goal antes do ArrendAngulo: "+compass_goal + "coord antigas costas:" + coordsAntigas.contains(coord2Tras()));
         arrendAngulo();
-        System.out.println("next x= "+next.getX()+" y= "+next.getY()+" compass_goal= "+compass_goal);
-        
-        //calcular o estado quando esta no centro da celula -> estado seguinte
-        
-        
+        System.out.println("Mapping decode next x= "+next.getX()+" y= "+next.getY()+" compass_goal= "+compass_goal + " compass= " + compass);        
+       
     }
 
     public LinkedList<vetor> vizinhos(){
@@ -492,7 +512,9 @@ public class jClientC2 {
         if(!ParedeTras()){ viz.add(coord2Tras()); }
         return viz;
     }
-    public void fillMap(){ //chamada no estado init para encher o mapa com " "
+
+//------------------------------------- MAPA MAPA MAPA -------------------------------------
+    public void fillMap(){ //chamada no estado init para encher o ARRAY do mapa com " "
         for(int i=0; i<28;i++){
             for (int j=0; j<56; j++){
                 coords[i][j]=" ";
@@ -518,16 +540,16 @@ public class jClientC2 {
 
     public void writeMap() throws IOException{ //Escreve o mapa no file
         File fileMap = new File (mapName);
-        Scanner fin = new Scanner (fileMap); //ficheiro de entrada = ficheiro de saida
+        Scanner fin = new Scanner (fileMap);
         if (!fileMap.exists()){
-            System.out.println("Ficheiro nao existe");
+            System.out.println("Ficheiro nao existe"); //criar o file
         }
         PrintWriter write = new PrintWriter(fileMap);
         String a = new String();
-        for(int i=1; i<28;i++){
-            for (int j=1; j<56; j++){
-                a = a+coords[i][j]; // a = linha toda
-                if (j==55) a=a+"\n";
+        for(int lin=1; lin<28;lin++){
+            for (int col=1; col<56; col++){
+                a = a+coords[lin][col]; // a = linha toda
+                if (lin==55) a=a+"\n";
             }
             write.print(a);
         }
@@ -591,19 +613,19 @@ public class jClientC2 {
     //AUXILIARES
     //ver se existe parede nas 4 direcoes
     public boolean ParedeFrente(){
-        if(irSensor0>=2.0) return true;
+        if(irSensor0>=1.2) return true;
         return false;
     }
     public boolean ParedeTras(){
-        if(irSensor3>=2.0) return true;
+        if(irSensor3>=1.2) return true;
         return false;
     }
     public boolean ParedeDireita(){
-        if(irSensor2>=2.0) return true;
+        if(irSensor2>=1.2) return true;
         return false;
     }
     public boolean ParedeEsquerda(){
-        if(irSensor1>=2.0) return true;
+        if(irSensor1>=1.2) return true;
         return false;
     }
 
@@ -690,7 +712,7 @@ public class jClientC2 {
     // compass_goal para onde ele vai ter de rodar
     private beaconMeasure beacon;
     private int ground;
-    private boolean collision,init; //initial position?
+    private boolean collision,init, end; //initial position?
     private vetor next = new vetor(); //para onde vai a seguir
     private State state;
     private int beaconToFollow;
