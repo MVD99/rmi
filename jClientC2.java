@@ -17,10 +17,6 @@
     along with Foobar; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-//escolher tipo de mapa  - "X - | + \s"
-//mapear - sensores detetar paredes
-//guardar - guardar coordenadas das paredes ?
-//calcular next
 
 import java.beans.PersistenceDelegate;
 import java.io.*;
@@ -276,14 +272,14 @@ public class jClientC2 {
             if(targetReached()){
                 System.out.println("\n Measures: ir0=" + irSensor0 + " ir1=" + irSensor1 + " ir2=" + irSensor2 + " ir3="+ irSensor3+"\n" + "bussola=" + compass + " GPS-X=" + x + " GPS-y=" + y);
                 System.out.println("f: "+ParedeFrente()+" esq: "+ParedeEsquerda()+" dir: "+ParedeDireita()+" tras: "+ParedeTras());
-                System.out.println("init: "+init+" targetReached? "+targetReached()+" Visited? "+coordsAntigas.contains(next) +"\n");
+                System.out.println("init: "+init+" targetReached? "+targetReached() + "\n");
             }
             //funcao geral: detetar se está no centro, se sim corre mapping e calcular next, se nao manda andar para onde é preciso
             //andar implica ou curvas ou ahead
             
 
             state = Estados();
-            if(next.getX()==4 && next.getY()==0){state= State.END;}
+            if(next.getX()==6 && next.getY()==2){state = State.END;}
             System.out.println("Estado: "+state);
             switch(state) { /////é aqui que mexemos
 
@@ -339,6 +335,11 @@ public class jClientC2 {
             init=false;
             return State.GA;
         }
+        if(endS==true){
+            endS=false;        
+            return State.END;
+        }
+
         if(Math.abs(Math.abs(compass)-Math.abs(compass_goal))>=15){ //VERIFICAR SE 10º É MUITO
             
             if(Math.abs(Math.abs(compass)-Math.abs(compass_goal))>110) return State.INV;
@@ -366,6 +367,11 @@ public class jClientC2 {
     
     public boolean targetReached(){ //chegou ao objetivo?
         if (Math.abs(x-next.getX())<=0.15 && Math.abs(y-next.getY())<=0.15){
+            Iterator<vetor> it = coordsAntigas.iterator();
+            while(it.hasNext()){
+                it.next().printV();
+            }
+            System.out.println("Size - " + coordsAntigas.size());
             return true;
         }else{
             return false;
@@ -427,81 +433,82 @@ public class jClientC2 {
     public void mappingDecode() throws IOException{
         Set<vetor> localViz = new HashSet<vetor>();
         //adicionar coordenada atual a lista de coordendas visitadas
-        double xin = Math.round(x);
-        double yin = Math.round(y);
-        vetor vatual= new vetor(xin,yin);
-        coordsAntigas.addLast(vatual);
-        visitaveis.remove(vatual);  //se tiver lá remover das visitaveis a atual 
+        //vetor aux = new vetor(x,y);
+        //coordsAntigas.add(aux);
+        coordsAntigas.add(next);
+        visitaveis.remove(next);  //se tiver lá remover das visitaveis a atual 
 
         //MAPEAR
         //detetar paredes, se for ou | ou -, se n for entao "x"
         //se coordenada nao for parede e nao tiver sido visitada e nao estiver nos visitaveis, adiciona aos visitaveis
         if(ParedeDireita()){
-            if(par(coordDir()))
+            if(!par(coordDir()))
                 addToMap(coordDir(),"|");
             else
                 addToMap(coordDir(),"-");
         }else{
             addToMap(coordDir(), "X");
+            addToMap(coord2Dir(), "X");
             if(!coordsAntigas.contains(coord2Dir())){
                 localViz.add(coord2Dir());
                 visitaveis.add(coord2Dir());
             }
         }
         if(ParedeEsquerda()){
-            if(par(coordEsq()))
+            if(!par(coordEsq()))
                 addToMap(coordEsq(),"|");
             else 
                 addToMap(coordEsq(),"-");
         }else{
             addToMap(coordEsq(), "X");
+            addToMap(coord2Esq(), "X");
             if(!coordsAntigas.contains(coord2Esq())) {
                 localViz.add(coord2Esq());
                 visitaveis.add(coord2Esq());
             }
         }
         if(ParedeFrente()){
-            if(par(coordFrente()))
+            if(!par(coordFrente()))
                 addToMap(coordFrente(),"|");
             else
                 addToMap(coordFrente(),"-");
         }else{
             addToMap(coordFrente(), "X");
+            addToMap(coord2Frente(), "X");
             if(!coordsAntigas.contains(coord2Frente())){
                 localViz.add(coord2Frente());
                 visitaveis.add(coord2Frente());
             }
         }
         if(ParedeTras()){
-            if(par(coordTras()))
+            if(!par(coordTras()))
                 addToMap(coordTras(),"|");
             else
                 addToMap(coordTras(),"-");
         }else{
             addToMap(coordTras(), "X");
+            addToMap(coord2Tras(), "X");
             if(!coordsAntigas.contains(coord2Tras())){
                 visitaveis.add(coord2Tras());
             }
         }
 
-        if(visitaveis.isEmpty()){end();} // quando visitar tudo
-
-//--------------------- calcular a posicao seguinte--------------------------------
-        //definir tambem compass_goal
+        if(visitaveis.isEmpty()){endS=true;} // quando visitar tudo ou se o clock estiver quase acabar
         
-        if(localViz.size()==0) next.setXY(visitaveis.iterator().next());
-        else{
-            if(visitaveis.size()==0){end();}
-            next.setXY(localViz.iterator().next());
-            if(next.getX()==coord2Frente().getX() && next.getY()==coord2Frente().getY()) compass_goal=compass;
-            if(next.getX()==coord2Dir().getX() && next.getY()==coord2Dir().getY()) compass_goal=compass-90;
-            if(next.getX()==coord2Esq().getX() && next.getY()==coord2Esq().getY()) compass_goal=compass+90;
-            if(next.getX()==coord2Tras().getX() && next.getY()==coord2Tras().getY()) compass_goal=compass-180;
+//--------------------- calcular a posicao seguinte--------------------------------
+        else{        
+            if(localViz.size()==0) next.setXY(visitaveis.iterator().next());
+            else{
+                next.setXY(localViz.iterator().next());
+                if(next.getX()==coord2Frente().getX() && next.getY()==coord2Frente().getY()) compass_goal=compass;
+                if(next.getX()==coord2Dir().getX() && next.getY()==coord2Dir().getY()) compass_goal=compass-90;
+                if(next.getX()==coord2Esq().getX() && next.getY()==coord2Esq().getY()) compass_goal=compass+90;
+                if(next.getX()==coord2Tras().getX() && next.getY()==coord2Tras().getY()) compass_goal=compass-180;
+            }
+            arrendAngulo();
         }
-        System.out.println("Compass_goal antes do ArrendAngulo: "+compass_goal + "coord antigas costas:" + coordsAntigas.contains(coord2Tras()));
-        arrendAngulo();
-        System.out.println("Mapping decode next x= "+next.getX()+" y= "+next.getY()+" compass_goal= "+compass_goal + " compass= " + compass);        
-       
+        //System.out.println("Compass_goal antes do ArrendAngulo: "+ compass_goal);
+        //System.out.println("Mapping decode next x= "+next.getX()+" y= "+next.getY()+" compass_goal= "+compass_goal + " compass= " + compass);          
     }
 
     public LinkedList<vetor> vizinhos(){
@@ -515,8 +522,8 @@ public class jClientC2 {
 
 //------------------------------------- MAPA MAPA MAPA -------------------------------------
     public void fillMap(){ //chamada no estado init para encher o ARRAY do mapa com " "
-        for(int i=0; i<28;i++){
-            for (int j=0; j<56; j++){
+        for(int i=0; i<28;i++){ //percorremos as linhas
+            for (int j=0; j<56; j++){ //percorremos as colunas para cada linha
                 coords[i][j]=" ";
                 if(i==14 && j==28) coords[i][j]= "I";
             }
@@ -524,67 +531,40 @@ public class jClientC2 {
     }
 
     public void addToMap(vetor v, String a) throws IOException { //escrever no coords a String certa REVER
-        //Adicionar verificacao de empty no array
-        if(!onMap(v)){
-            for(int i=1; i<28;i++){
-                for (int j=1; j<56; j++){
-                    if(v.getX()==i && v.getY()==j){
-                        coords[i][j]= a;
-                        break;
-                    }
-                }
-            }
-        }
+        int col = (int) (v.getX())+28;
+        int lin = 14 - (int) (v.getY());
+        if(!onMap(v))coords[lin][col]= a;
     }
 
 
     public void writeMap() throws IOException{ //Escreve o mapa no file
         File fileMap = new File (mapName);
         Scanner fin = new Scanner (fileMap);
-        if (!fileMap.exists()){
-            System.out.println("Ficheiro nao existe"); //criar o file
+        if (fileMap.createNewFile()) {
+            System.out.println("File created: " + fileMap.getName());
+        } else {
+            System.out.println("File already exists. Cleaning and rewriting the file.");
         }
-        PrintWriter write = new PrintWriter(fileMap);
+        FileWriter writeFile = new FileWriter(fileMap);
         String a = new String();
         for(int lin=1; lin<28;lin++){
+            a="";
             for (int col=1; col<56; col++){
-                a = a+coords[lin][col]; // a = linha toda
-                if (lin==55) a=a+"\n";
+                a = a + coords[lin][col]; // a = linha toda
+                if (col==55) a = a + "\n";
             }
-            write.print(a);
+            writeFile.write(a);
         }
         fin.close();
-        write.close();    
+        writeFile.close();    
     }
 
-    public boolean onMap(vetor v) throws IOException{  //Verificar se as coordenadas dadas já estão preenchidas
-        File fileMap = new File (mapName);
-        Scanner fin = new Scanner (fileMap); //ficheiro de entrada = ficheiro de saida
-        if (!fileMap.exists()){
-            System.out.println("Ficheiro nao existe");
-        }
-        double linha =0;
-        double coluna =0;
-        String b = new String();
-        while (fin.hasNextLine()){ //vamos ver na linha
-            if(linha == v.getY()+14){
-                //percorrer nas colunas
-                while(fin.hasNext()){
-                    if(coluna==v.getX()+28){
-                        b=fin.next();
-                        if(b.equals("|") || b.equals("X") || b.equals("-") || b.equals("I")){
-                            fin.close();
-                            return true;
-                        } 
-                        fin.close();
-                        return false;
-                    }
-                    coluna++;
-                }
-            }
-            linha++;
-        }
-        fin.close();
+    public boolean onMap(vetor v) {  //Verificar se as coordenadas dadas já estão preenchidas
+        int col = (int) (v.getX())+28;
+        int lin = 14 - (int) (v.getY());
+        if(coords[lin][col].equals("|") || coords[lin][col].equals("X") || coords[lin][col].equals("-") || coords[lin][col].equals("I")){
+            return true;
+        } 
         return false;
     }
 
@@ -595,7 +575,7 @@ public class jClientC2 {
 
 
     static void print_usage() {
-             System.out.println("Usage: java jClientC2 [--robname <robname>] [--pos <pos>] [--host <hostname>[:<port>]] [--map <map_filename>]");
+        System.out.println("Usage: java jClientC2 [--robname <robname>] [--pos <pos>] [--host <hostname>[:<port>]] [--map <map_filename>]");
     }
 
     public void printMap() {
@@ -606,10 +586,6 @@ public class jClientC2 {
            }
     }
     
-    public void end(){
-        
-    }
-
     //AUXILIARES
     //ver se existe parede nas 4 direcoes
     public boolean ParedeFrente(){
@@ -712,12 +688,12 @@ public class jClientC2 {
     // compass_goal para onde ele vai ter de rodar
     private beaconMeasure beacon;
     private int ground;
-    private boolean collision,init, end; //initial position?
+    private boolean collision,init, end, endS; //initial position?
     private vetor next = new vetor(); //para onde vai a seguir
     private State state;
     private int beaconToFollow;
-    private String[][] coords = new String[28][56]; //linhas, colunas, mapa completo
-    private LinkedList<vetor> coordsAntigas = new LinkedList<vetor>(); //linhas, colunas
+    private String[][] coords = new String[28][56]; //linhas (Y), colunas (X), mapa completo
+    private Set<vetor> coordsAntigas = new HashSet<vetor>(); //linhas, colunas
     private Set<vetor> visitaveis = new HashSet<vetor>();
     
     public class vetor{
@@ -750,6 +726,9 @@ public class jClientC2 {
             double ny = Double.valueOf(Math.round(yf));
             x=nx;
             y=ny;
+        }
+        public void printV(){
+            System.out.println(x + " "+y);
         }
     }
 };
