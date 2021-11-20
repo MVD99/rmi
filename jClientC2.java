@@ -279,7 +279,7 @@ public class jClientC2 {
             
 
             state = Estados();
-            if(next.getX()==6 && next.getY()==2){state = State.END;}
+            if((next.getX()==2 && next.getY()==2) || (next.getX()==4 && next.getY()==0)){state = State.END;}
             System.out.println("Estado: "+state);
             switch(state) { /////é aqui que mexemos
 
@@ -430,18 +430,10 @@ public class jClientC2 {
         //adicionar coordenada atual a lista de coordendas visitadas
         vetor abc = new vetor();
         abc.setXY(next);
-        System.out.println("Coords Antigas:");
         coordsAntigas.add(abc);
-        Iterator<vetor> it2 = coordsAntigas.iterator();
-            while(it2.hasNext()){
-                it2.next().printV();
-            }
-        System.out.println("Size - " + coordsAntigas.size());
+        visitaveis.remove(abc);
+        
 
-        Iterator<vetor> rv = visitaveis.iterator();
-        while(rv.hasNext()){
-            if(rv.next().equals(abc)) rv.remove();
-        }
         //MAPEAR
         //detetar paredes, se for ou | ou -, se n for entao "x"
         //se coordenada nao for parede e nao tiver sido visitada e nao estiver nos visitaveis, adiciona aos visitaveis
@@ -459,9 +451,9 @@ public class jClientC2 {
             addToMap(coordDir(), "X");
             addToMap(coord2Dir(), "X");
             pd.setXY(coord2Dir());
-            if(!coordsAntigas.contains(pd)){
+            if(!AntContem(pd)){
                 localViz.add(pd);
-                visitaveis.add(pd);
+                if (!visitaveis.contains(pd))visitaveis.add(pd);
             }
         }
         if(ParedeEsquerda()){
@@ -473,9 +465,9 @@ public class jClientC2 {
             addToMap(coordEsq(), "X");
             addToMap(coord2Esq(), "X");
             pe.setXY(coord2Esq());
-            if(!coordsAntigas.contains(pe)) {
+            if(!AntContem(pe)) {
                 localViz.add(pe);
-                visitaveis.add(pe);
+                if (!visitaveis.contains(pd))visitaveis.add(pe);
             }
         }
         if(ParedeFrente()){
@@ -487,9 +479,9 @@ public class jClientC2 {
             addToMap(coordFrente(), "X");
             addToMap(coord2Frente(), "X");
             pf.setXY(coord2Frente());
-            if(!coordsAntigas.contains(pf)){
+            if(!AntContem(pf)){
                 localViz.add(pf);
-                visitaveis.add(pf);
+                if (!visitaveis.contains(pd))visitaveis.add(pf);
             }
         }
         if(ParedeTras()){
@@ -501,29 +493,19 @@ public class jClientC2 {
             addToMap(coordTras(), "X");
             addToMap(coord2Tras(), "X");
             pt.setXY(coord2Tras());
-            if(!coordsAntigas.contains(pt)){
-                visitaveis.add(pt);
+            if(!AntContem(pt)){
+                System.out.println("Entrei");
+                if (!visitaveis.contains(pd))visitaveis.add(pt);
             }
         }
-
-        System.out.println("Local vizinhos:");
-        Iterator<vetor> it3 = localViz.iterator();
-            while(it3.hasNext()){
-                it3.next().printV();
-            }
-        System.out.println("Size - " + localViz.size());
-        System.out.println("Global visitaveis:");
-        Iterator<vetor> it4 = visitaveis.iterator();
-            while(it4.hasNext()){
-                it4.next().printV();
-            }
-        System.out.println("Size - " + visitaveis.size());
 
         if(visitaveis.isEmpty()){endS=true;} // quando visitar tudo ou se o clock estiver quase acabar
         
 //--------------------- calcular a posicao seguinte--------------------------------
         else{        
-            if(localViz.size()==0) next.setXY(visitaveis.iterator().next());
+            if(localViz.size()==0){ 
+                next.setXY(visitaveis.iterator().next());}
+            }
             else{
                 next.setXY(localViz.iterator().next());
                 if(next.getX()==coord2Frente().getX() && next.getY()==coord2Frente().getY()) compass_goal=compass;
@@ -706,6 +688,13 @@ public class jClientC2 {
         else compass_goal=180;
     }
 
+    public boolean AntContem(vetor v){
+        for(int i=0; i<coordsAntigas.size(); i++){
+            if(coordsAntigas.get(i).equals(v)) return true;
+        }
+        return false;
+    }
+
     //VARIAVEIS
 
     private String robName;
@@ -719,13 +708,14 @@ public class jClientC2 {
     private State state;
     private int beaconToFollow;
     private String[][] coords = new String[28][56]; //linhas (Y), colunas (X), mapa completo
-    private Set<vetor> coordsAntigas = new HashSet<vetor>(); //linhas, colunas
-    private Set<vetor> visitaveis = new HashSet<vetor>();
+    private LinkedList<vetor> coordsAntigas = new LinkedList<vetor>(); //linhas, colunas
+    private LinkedList<vetor> visitaveis = new LinkedList<vetor>();
+    //private LinkedList<vetor> caminho = new LinkedList<vetor>();
     
     public class vetor{
         private double x;
         private double y;
-
+        
         public vetor(){}
         public vetor(double x, double y){
             this.x=x;
@@ -762,6 +752,7 @@ public class jClientC2 {
             return false;
         }
     }
+
 };
 
 
