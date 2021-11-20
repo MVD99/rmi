@@ -367,11 +367,6 @@ public class jClientC2 {
     
     public boolean targetReached(){ //chegou ao objetivo?
         if (Math.abs(x-next.getX())<=0.15 && Math.abs(y-next.getY())<=0.15){
-            Iterator<vetor> it = coordsAntigas.iterator();
-            while(it.hasNext()){
-                it.next().printV();
-            }
-            System.out.println("Size - " + coordsAntigas.size());
             return true;
         }else{
             return false;
@@ -433,14 +428,28 @@ public class jClientC2 {
     public void mappingDecode() throws IOException{
         Set<vetor> localViz = new HashSet<vetor>();
         //adicionar coordenada atual a lista de coordendas visitadas
-        //vetor aux = new vetor(x,y);
-        //coordsAntigas.add(aux);
-        coordsAntigas.add(next);
-        visitaveis.remove(next);  //se tiver lá remover das visitaveis a atual 
+        vetor abc = new vetor();
+        abc.setXY(next);
+        System.out.println("Coords Antigas:");
+        coordsAntigas.add(abc);
+        Iterator<vetor> it2 = coordsAntigas.iterator();
+            while(it2.hasNext()){
+                it2.next().printV();
+            }
+        System.out.println("Size - " + coordsAntigas.size());
 
+        Iterator<vetor> rv = visitaveis.iterator();
+        while(rv.hasNext()){
+            if(rv.next().equals(abc)) rv.remove();
+        }
         //MAPEAR
         //detetar paredes, se for ou | ou -, se n for entao "x"
         //se coordenada nao for parede e nao tiver sido visitada e nao estiver nos visitaveis, adiciona aos visitaveis
+        vetor pf = new vetor();
+        vetor pe = new vetor();
+        vetor pd = new vetor();
+        vetor pt = new vetor();
+
         if(ParedeDireita()){
             if(!par(coordDir()))
                 addToMap(coordDir(),"|");
@@ -449,9 +458,10 @@ public class jClientC2 {
         }else{
             addToMap(coordDir(), "X");
             addToMap(coord2Dir(), "X");
-            if(!coordsAntigas.contains(coord2Dir())){
-                localViz.add(coord2Dir());
-                visitaveis.add(coord2Dir());
+            pd.setXY(coord2Dir());
+            if(!coordsAntigas.contains(pd)){
+                localViz.add(pd);
+                visitaveis.add(pd);
             }
         }
         if(ParedeEsquerda()){
@@ -462,9 +472,10 @@ public class jClientC2 {
         }else{
             addToMap(coordEsq(), "X");
             addToMap(coord2Esq(), "X");
-            if(!coordsAntigas.contains(coord2Esq())) {
-                localViz.add(coord2Esq());
-                visitaveis.add(coord2Esq());
+            pe.setXY(coord2Esq());
+            if(!coordsAntigas.contains(pe)) {
+                localViz.add(pe);
+                visitaveis.add(pe);
             }
         }
         if(ParedeFrente()){
@@ -475,9 +486,10 @@ public class jClientC2 {
         }else{
             addToMap(coordFrente(), "X");
             addToMap(coord2Frente(), "X");
-            if(!coordsAntigas.contains(coord2Frente())){
-                localViz.add(coord2Frente());
-                visitaveis.add(coord2Frente());
+            pf.setXY(coord2Frente());
+            if(!coordsAntigas.contains(pf)){
+                localViz.add(pf);
+                visitaveis.add(pf);
             }
         }
         if(ParedeTras()){
@@ -488,10 +500,24 @@ public class jClientC2 {
         }else{
             addToMap(coordTras(), "X");
             addToMap(coord2Tras(), "X");
-            if(!coordsAntigas.contains(coord2Tras())){
-                visitaveis.add(coord2Tras());
+            pt.setXY(coord2Tras());
+            if(!coordsAntigas.contains(pt)){
+                visitaveis.add(pt);
             }
         }
+
+        System.out.println("Local vizinhos:");
+        Iterator<vetor> it3 = localViz.iterator();
+            while(it3.hasNext()){
+                it3.next().printV();
+            }
+        System.out.println("Size - " + localViz.size());
+        System.out.println("Global visitaveis:");
+        Iterator<vetor> it4 = visitaveis.iterator();
+            while(it4.hasNext()){
+                it4.next().printV();
+            }
+        System.out.println("Size - " + visitaveis.size());
 
         if(visitaveis.isEmpty()){endS=true;} // quando visitar tudo ou se o clock estiver quase acabar
         
@@ -508,7 +534,7 @@ public class jClientC2 {
             arrendAngulo();
         }
         //System.out.println("Compass_goal antes do ArrendAngulo: "+ compass_goal);
-        //System.out.println("Mapping decode next x= "+next.getX()+" y= "+next.getY()+" compass_goal= "+compass_goal + " compass= " + compass);          
+        System.out.println("Mapping decode next x= "+next.getX()+" y= "+next.getY()+" compass_goal= "+compass_goal + " compass= " + compass);          
     }
 
     public LinkedList<vetor> vizinhos(){
@@ -729,6 +755,11 @@ public class jClientC2 {
         }
         public void printV(){
             System.out.println(x + " "+y);
+        }
+
+        public boolean equals(vetor v){
+            if(x==v.getX() && y==v.getY())return true;
+            return false;
         }
     }
 };
