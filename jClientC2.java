@@ -229,7 +229,6 @@ public class jClientC2 {
         x0=cif.GetX();
         y0=cif.GetY();
         init=true;
-        end=true;
         fillMap();
         while(true) {
                 cif.ReadSensors(); // ler os sensores .....
@@ -321,10 +320,8 @@ public class jClientC2 {
 
                 case END:
                     cif.DriveMotors(0.0,0.0);
-                    if(end==true){
-                        end=false;
-                        writeMap();
-                    }
+                    writeMap();
+                    System.exit(0);
                     break;
             }
             return;
@@ -339,30 +336,33 @@ public class jClientC2 {
             endS=false;        
             return State.END;
         }
+        if(compass_goal == -90){
+            if(compass_goal-compass>-15 && compass_goal-compass<=15) return State.GA;
+            System.out.println("cg>c: " + compass_goal + " " +compass+ " x: "+x+" y: "+y);
 
-        if(Math.abs(Math.abs(compass)-Math.abs(compass_goal))>=15){
-            
-            if(Math.abs((compass+180)-(compass_goal+180))>110) return State.INV;
-
-            if(compass_goal == -90){
-                System.out.println("cg>c: " + compass_goal + " " +compass+ " x: "+x+" y: "+y);
-                if(compass>-90 && compass<90) return State.RR;
-                else return State.RL;
-            }
-            else if(compass_goal == 180){
-                System.out.println("cg>c: " + compass_goal + " " +compass+ " x: "+x+" y: "+y);
-                if(compass<0) return State.RR;
-                else return State.RL;
-            }
-            else{
-                System.out.println("cg>c: " + compass_goal + " " +compass+ " x: "+x+" y: "+y);
-                if(compass_goal>compass) return State.RL;
-                else return State.RR;
-
-            }
-        }else{
-            return State.GA;
+            if(compass>-90 && compass<90) return State.RR;
+            else return State.RL;
         }
+        else if(compass_goal == 180){
+            if(Math.abs(Math.abs(compass)-Math.abs(compass_goal))<=15) return State.GA;
+            System.out.println("cg>c: " + compass_goal + " " +compass+ " x: "+x+" y: "+y);
+            if(compass<0) return State.RR;
+            else return State.RL;
+        }
+        else if(compass_goal == 90){
+            if(compass_goal-compass>-15 && compass_goal-compass<=15) return State.GA;
+            System.out.println("cg>c: " + compass_goal + " " +compass+ " x: "+x+" y: "+y);
+            if(compass<90 && compass>-90) return State.RL;
+            else return State.RR;
+
+        }
+        else if(compass_goal == 0){
+            if(compass_goal-compass>-15 && compass_goal-compass<=15) return State.GA;
+            System.out.println("cg>c: " + compass_goal + " " +compass+ " x: "+x+" y: "+y);
+            if(compass<0) return State.RL;
+            else return State.RR; 
+        }
+        else return State.GA;
     }
     
     public boolean targetReached(){ //chegou ao objetivo?
@@ -427,20 +427,18 @@ public class jClientC2 {
     }
 
     public void setCaminho(){  // criar o caminho todo
+        System.out.println("Entrei SET CAMINHO");
         vetor vatual=new vetor();
         vatual.setXY(x, y);
         Node target= new Node(visitaveis.getLast());
         Node head= new Node(coordsAntigas.getLast());
-        Node res = aStar(head, target);
-        head.value.printV();
+        System.out.println("Valor target e head");
         target.value.printV();
+        head.value.printV();
+        Node res = aStar(head, target);
+        System.out.println("sai o a* _----------------------- entrei no printpath");
         caminho=printPath(res);
-        
-        Iterator it3 = caminho.iterator();        
-        while(it3.hasNext()){
-            vetor v = (vetor) it3.next();
-            v.printV();     
-        }
+        System.out.println("sai do prinPath _----------------------- entrei no run");
         runCaminho();
     }
 
@@ -489,27 +487,24 @@ public class jClientC2 {
         }
 
         public double calculateHeuristic(Node target){
-          h=(target.value.getX()-value.getX())*(target.value.getY()-value.getY());  //Manhattan 
+          h=Math.abs(value.getX()-target.value.getX())+Math.abs(value.getY()-target.value.getY());  //Manhattan 
           return h;
         }
 
         public LinkedList<Edge> actions(){
             Node[] n = new Node[4];
             LinkedList<Edge> ret = new LinkedList<Edge>();
+            for(int l=0; l<coordsAntigas.size();l++){
+                vetor k= new vetor(coordsAntigas.get(l).getX(), coordsAntigas.get(l).getY(), coordsAntigas.get(l).filhos);
+                if(k.getX()==value.getX() && k.getY()==value.getY()){
+                    value.filhos=k.filhos;
+                }
+            }
             for(int i=0; i<value.filhos.size(); i++){
-                Iterator<vetor> ca = coordsAntigas.iterator();
-                while(ca.hasNext()){
-                    vetor k = ca.next();
-                    if(k.x==value.x && k.y==value.y){
-                        k.printV();
-                        value.filhos=k.filhos;
-                        break;
-                    } 
-                }                
                 n[i]= new Node(value.filhos.get(i)); 
                 n[i].parent=this;
                 ret.add(new Edge(1,n[i]));
-            }
+            }    
             return ret;
         }
     }
@@ -517,24 +512,25 @@ public class jClientC2 {
 
         PriorityQueue<Node> closedList = new PriorityQueue<>();
         PriorityQueue<Node> openList = new PriorityQueue<>();
-    
+        closedList.clear();
+        openList.clear();
+        System.out.println("Valor target e start");
+        target.value.printV();
+        start.value.printV();
         start.f = start.g + start.calculateHeuristic(target);
         openList.add(start);
-        System.out.println("OpenList Size "+openList.size());
-        target.value.printV();
+        System.out.println("A* next x= "+target.value.getX()+" y= "+target.value.getY());  
+        System.out.println("Size Lista: "+openList.size());       
         while(!openList.isEmpty()){
             Node n = openList.peek();
-            System.out.println("Novo no");
-            n.value.printV();
-            if(n == target){
+            if(n.value.equals(target.value)){
                 return n;
             }
             
             n.neighbours=n.actions();
+            System.out.println("Vim ao actions");
             for(Node.Edge edge : n.neighbours){
                 Node m = edge.node;
-                //System.out.println("Neighbours");
-                //m.value.printV();
                 double totalWeight = n.g + edge.weight;
     
                 if(!openList.contains(m) && !closedList.contains(m)){
@@ -552,14 +548,12 @@ public class jClientC2 {
         
     public static LinkedList<vetor> printPath(Node target){    
         if(target==null){
-            System.out.println("Dentro do PrintPath NULO");
             return null;
         } 
         LinkedList<vetor> path = new LinkedList<>();
         while(target.parent != null){
             path.add(target.value);
             target = target.parent;
-            target.value.printV();
         }
         path.add(target.value);
         Collections.reverse(path);
@@ -573,12 +567,16 @@ public class jClientC2 {
         if(next.getX()==coord2Dir().getX() && next.getY()==coord2Dir().getY()) compass_goal=compass-90;
         if(next.getX()==coord2Esq().getX() && next.getY()==coord2Esq().getY()) compass_goal=compass+90;
         if(next.getX()==coord2Tras().getX() && next.getY()==coord2Tras().getY()) compass_goal=compass-180;
+        if(compass_goal==270) compass_goal=-90;
+        if(compass_goal==-270) compass_goal=90;
+        System.out.println("Caminho antes- next: "+next.x+" "+next.y+" cg: "+compass_goal+" compass: "+compass);
         arrendAngulo();        
         caminho.removeFirst();
+        System.out.println("Caminho - next: "+next.x+" "+next.y+" cg: "+compass_goal+" compass: "+compass);
+
     }
 
     public void mappingDecode() throws IOException{
-        System.out.println("Map decoder------------------------------");
         Set<vetor> localViz = new HashSet<vetor>();
         //adicionar coordenada atual a lista de coordendas visitadas
         vetor abc = new vetor();
@@ -588,13 +586,6 @@ public class jClientC2 {
             abc.addFilho(vizinhos().get(k));
         }
         coordsAntigas.add(abc);
-        // Iterator<vetor> ca = coordsAntigas.iterator();
-        // while(ca.hasNext()){
-        //     vetor v = ca.next();
-        //     v.printV();
-        // } 
-        
-
         //MAPEAR
         //detetar paredes, se for ou | ou -, se n for entao "x"
         //se coordenada nao for parede e nao tiver sido visitada e nao estiver nos visitaveis, adiciona aos visitaveis
@@ -602,8 +593,6 @@ public class jClientC2 {
         vetor pe = new vetor();
         vetor pd = new vetor();
         vetor pt = new vetor();
-
-        
 
         if(ParedeDireita()){
             if(!par(coordDir()))
@@ -673,9 +662,11 @@ public class jClientC2 {
                 arrendAngulo2();
                 if(next.getX()==coord2Frente().getX() && next.getY()==coord2Frente().getY()) compass_goal=compass;
                 if(next.getX()==coord2Dir().getX() && next.getY()==coord2Dir().getY()) compass_goal=compass-90;
-                if(next.getX()==coord2Esq().getX() && next.getY()==coord2Esq().getY()) compass_goal=compass+90; 
+                if(next.getX()==coord2Esq().getX() && next.getY()==coord2Esq().getY()) compass_goal=compass+90;
                 if(next.getX()==coord2Tras().getX() && next.getY()==coord2Tras().getY()) compass_goal=compass-180;
             }
+            if(compass_goal==270) compass_goal=-90;
+            if(compass_goal==-270) compass_goal=90;
             arrendAngulo();
         }
 
@@ -706,7 +697,7 @@ public class jClientC2 {
 
     public void addToMap(vetor v, String a) throws IOException { //escrever no coords a String certa REVER
         int col = (int) (v.getX())+28;
-        int lin = 14 - (int) (v.getY());
+        int lin = 14 - (int)(v.getY());
         if(!onMap(v))coords[lin][col]= a;
     }
 
@@ -876,7 +867,7 @@ public class jClientC2 {
     // compass_goal para onde ele vai ter de rodar
     private beaconMeasure beacon;
     private int ground;
-    private boolean collision,init, end, endS; //initial position?
+    private boolean collision,init, endS; //initial position?
     private vetor next = new vetor(); //para onde vai a seguir
     private State state;
     private int beaconToFollow;
@@ -894,6 +885,11 @@ public class jClientC2 {
         public vetor(double x, double y){ 
             this.x=x;
             this.y=y;
+        }
+        public vetor(double x, double y, LinkedList<vetor> filhos){
+            this.x=x;
+            this.y=y;
+            this.filhos=filhos;
         }
         public double getX(){
             return x;
