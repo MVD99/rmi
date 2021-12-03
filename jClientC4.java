@@ -206,7 +206,6 @@ public class jClientC4 {
     jClientC4() {
             cif = new ciberIF();
             beacon = new beaconMeasure();
-
             beaconToFollow = 0;
             ground=-1;
     }
@@ -221,10 +220,8 @@ public class jClientC4 {
         init=true;
         fillMap();
         while(true) {
-                cif.ReadSensors(); // ler os sensores .....
-                //criar as variaveis....
-
-                decide();
+            cif.ReadSensors(); 
+            decide();
         }
     }
 
@@ -264,46 +261,43 @@ public class jClientC4 {
             }
             //funcao geral: detetar se está no centro, se sim corre mapping e calcular next, se nao manda andar para onde é preciso
             //andar implica ou curvas ou ahead
-            
-
             state = Estados();
-           // if((next.getX()==2 && next.getY()==2) || (next.getX()==4 && next.getY()==0)){state = State.END;}
-            switch(state) { /////é aqui que mexemos
+            switch(state) { 
 
-                case GA: // andar para a frente
+                case GA: 
                     if(targetReached()){
                         if(caminho.isEmpty()) mappingDecode();
                         else runCaminho();
                         cif.DriveMotors(0.0,0.0);
                     }
                     else{
-                        goAhead(); //andar -> funcao de andar   
+                        goAhead();
                     }
                     break;
 
                 case RL:
-                    if(targetReached()){ //se nao atualizar os next
+                    if(targetReached()){
                         if(caminho.isEmpty()) mappingDecode();
                         else runCaminho();
                         cif.DriveMotors(0.0,0.0);
                     }
                     else{
-                        goLeft(); //esquerda -> funcao de rodar
+                        goLeft(); 
                     }
                     break;
 
                 case RR:
-                    if(targetReached()){ //se nao atualizar os next
+                    if(targetReached()){ 
                         if(caminho.isEmpty()) mappingDecode();
                         else runCaminho();
                         cif.DriveMotors(0.0,0.0);
                     }
                     else{
-                        goRight(); //rodar direita -> funcao de rodar
+                        goRight(); 
                     }
                     break;
 
-                case INV: // quando ele tievr que inverter
+                case INV:
                     goInv(); 
                     break;
 
@@ -356,7 +350,6 @@ public class jClientC4 {
         }else{
             return false;
         }
-
     }
 
     public void goLeft(){
@@ -379,7 +372,6 @@ public class jClientC4 {
     }
 
     public void goInv(){
-        //compass_goal = compass - 180;
         cif.DriveMotors(0.15,-0.15);
     }
 
@@ -411,7 +403,8 @@ public class jClientC4 {
         else return false;
     }
 
-    public void setCaminho(){  // criar o caminho todo
+    // criar o caminho todo
+    public void setCaminho(){
         vetor vatual=new vetor();
         vatual.setXY(x, y);
         Node target= new Node(visitaveis.getLast());
@@ -421,119 +414,8 @@ public class jClientC4 {
         runCaminho();
     }
 
-    public class Node implements Comparable<Node> {
-        // Id for readability of result purposes
-        private int idCounter = 0;
-        public int id;
-        public vetor value;
-  
-        // Parent in the path
-        public Node parent = null;
-  
-        public List<Edge> neighbours;
-        
-
-        public double g = 1; 
-        public double h; 
-        // Evaluation functions
-        public double f = g+h;
-       
-  
-        Node(vetor v){
-              value = v;
-              h=0;
-              this.id = idCounter++;
-              this.neighbours = new ArrayList<>(); 
-        }
-  
-        @Override
-        public int compareTo(Node n) {
-              return Double.compare(this.f, n.f);
-        }
-  
-        public class Edge {
-              Edge(int weight, Node node){
-                    this.weight = 1;
-                    this.node = node;
-              }
-  
-              public int weight;
-              public Node node;
-        }
-        public void addBranch(int weight, Node node){
-            Edge newEdge = new Edge(weight, node);
-            neighbours.add(newEdge);
-        }
-
-        public double calculateHeuristic(Node target){
-          h=Math.abs(value.getX()-target.value.getX())+Math.abs(value.getY()-target.value.getY());  //Manhattan 
-          return h;
-        }
-
-        public LinkedList<Edge> actions(){
-            Node[] n = new Node[4];
-            LinkedList<Edge> ret = new LinkedList<Edge>();
-            for(int l=0; l<coordsAntigas.size();l++){
-                vetor k= new vetor(coordsAntigas.get(l).getX(), coordsAntigas.get(l).getY(), coordsAntigas.get(l).filhos);
-                if(k.getX()==value.getX() && k.getY()==value.getY()){
-                    value.filhos=k.filhos;
-                }
-            }
-            for(int i=0; i<value.filhos.size(); i++){
-                n[i]= new Node(value.filhos.get(i)); 
-                n[i].parent=this;
-                ret.add(new Edge(1,n[i]));
-            }    
-            return ret;
-        }
-    }
-    public static Node aStar(Node start, Node target){
-
-        PriorityQueue<Node> closedList = new PriorityQueue<>();
-        PriorityQueue<Node> openList = new PriorityQueue<>();
-        closedList.clear();
-        openList.clear();
-        start.f = start.g + start.calculateHeuristic(target);
-        openList.add(start);     
-        while(!openList.isEmpty()){
-            Node n = openList.peek();
-            if(n.value.equals(target.value)){
-                return n;
-            }
-            
-            n.neighbours=n.actions();
-            for(Node.Edge edge : n.neighbours){
-                Node m = edge.node;
-                double totalWeight = n.g + edge.weight;
-    
-                if(!openList.contains(m) && !closedList.contains(m)){
-                    m.parent = n;
-                    m.g = totalWeight;
-                    m.f = m.g + m.calculateHeuristic(target);
-                    openList.add(m);
-                } 
-            }
-            openList.remove(n);
-            closedList.add(n);
-        }
-        return null;
-    }
-        
-    public static LinkedList<vetor> printPath(Node target){    
-        if(target==null){
-            return null;
-        } 
-        LinkedList<vetor> path = new LinkedList<>();
-        while(target.parent != null){
-            path.add(target.value);
-            target = target.parent;
-        }
-        path.add(target.value);
-        Collections.reverse(path);
-        return path;
-    }
-    
-    public void runCaminho(){ //da nos a proxima coordenada do caminho
+    //da nos a proxima coordenada do caminho
+    public void runCaminho(){ 
         next.setXY(caminho.getFirst());
         arrendAngulo2();
         if(next.getX()==coord2Frente().getX() && next.getY()==coord2Frente().getY()) compass_goal=compass;
@@ -620,9 +502,9 @@ public class jClientC4 {
                 if (!visitaveis.contains(pd))visitaveis.add(pt);
             }
         }
+        // quando visitar tudo ou se o clock estiver quase acabar
+        if(visitaveis.isEmpty() || cif.GetTime()> 4990){endS=true;} 
 
-        if(visitaveis.isEmpty() || cif.GetTime()> 4990){endS=true;} // quando visitar tudo ou se o clock estiver quase acabar
-        
 //--------------------- calcular a posicao seguinte--------------------------------
         else{        
             if(localViz.size()==0){ 
@@ -644,7 +526,6 @@ public class jClientC4 {
         //System.out.println("Compass_goal antes do ArrendAngulo: "+ compass_goal);
         System.out.println("Mapping decode next x= "+next.getX()+" y= "+next.getY()+" compass_goal= "+compass_goal + " compass= " + compass);          
     }
-
 
 
     public LinkedList<vetor> vizinhos(){
@@ -671,7 +552,6 @@ public class jClientC4 {
         int lin = 14 - (int)(v.getY());
         if(!onMap(v))coords[lin][col]= a;
     }
-
 
     public void writeMap() throws IOException{ //Escreve o mapa no file
         File fileMap = new File("mapa.txt");
@@ -843,6 +723,120 @@ public class jClientC4 {
     private LinkedList<vetor> visitaveis = new LinkedList<vetor>();
     private LinkedList<vetor> caminho = new LinkedList<vetor>();
     
+   
+public class Node implements Comparable<Node> {
+        // Id for readability of result purposes
+        private int idCounter = 0;
+        public int id;
+        public vetor value;
+  
+        // Parent in the path
+        public Node parent = null;
+  
+        public List<Edge> neighbours;
+        
+
+        public double g = 1; 
+        public double h; 
+        // Evaluation functions
+        public double f = g+h;
+       
+  
+        Node(vetor v){
+              value = v;
+              h=0;
+              this.id = idCounter++;
+              this.neighbours = new ArrayList<>(); 
+        }
+  
+        @Override
+        public int compareTo(Node n) {
+              return Double.compare(this.f, n.f);
+        }
+  
+        public class Edge {
+              Edge(int weight, Node node){
+                    this.weight = 1;
+                    this.node = node;
+              }
+  
+              public int weight;
+              public Node node;
+        }
+        public void addBranch(int weight, Node node){
+            Edge newEdge = new Edge(weight, node);
+            neighbours.add(newEdge);
+        }
+
+        public double calculateHeuristic(Node target){
+          h=Math.abs(value.getX()-target.value.getX())+Math.abs(value.getY()-target.value.getY());  //Manhattan 
+          return h;
+        }
+
+        public LinkedList<Edge> actions(){
+            Node[] n = new Node[4];
+            LinkedList<Edge> ret = new LinkedList<Edge>();
+            for(int l=0; l<coordsAntigas.size();l++){
+                vetor k= new vetor(coordsAntigas.get(l).getX(), coordsAntigas.get(l).getY(), coordsAntigas.get(l).filhos);
+                if(k.getX()==value.getX() && k.getY()==value.getY()){
+                    value.filhos=k.filhos;
+                }
+            }
+            for(int i=0; i<value.filhos.size(); i++){
+                n[i]= new Node(value.filhos.get(i)); 
+                n[i].parent=this;
+                ret.add(new Edge(1,n[i]));
+            }    
+            return ret;
+        }
+    }
+
+    public static Node aStar(Node start, Node target){
+
+        PriorityQueue<Node> closedList = new PriorityQueue<>();
+        PriorityQueue<Node> openList = new PriorityQueue<>();
+        closedList.clear();
+        openList.clear();
+        start.f = start.g + start.calculateHeuristic(target);
+        openList.add(start);     
+        while(!openList.isEmpty()){
+            Node n = openList.peek();
+            if(n.value.equals(target.value)){
+                return n;
+            }
+            
+            n.neighbours=n.actions();
+            for(Node.Edge edge : n.neighbours){
+                Node m = edge.node;
+                double totalWeight = n.g + edge.weight;
+    
+                if(!openList.contains(m) && !closedList.contains(m)){
+                    m.parent = n;
+                    m.g = totalWeight;
+                    m.f = m.g + m.calculateHeuristic(target);
+                    openList.add(m);
+                } 
+            }
+            openList.remove(n);
+            closedList.add(n);
+        }
+        return null;
+    }
+        
+    public static LinkedList<vetor> printPath(Node target){    
+        if(target==null){
+            return null;
+        } 
+        LinkedList<vetor> path = new LinkedList<>();
+        while(target.parent != null){
+            path.add(target.value);
+            target = target.parent;
+        }
+        path.add(target.value);
+        Collections.reverse(path);
+        return path;
+    }
+
     public class vetor{
         private double x;
         private double y;
@@ -898,7 +892,7 @@ public class jClientC4 {
             if (o == this) {
                 return true;
             }
-    
+
             /* Check if o is an instance of Complex or not
             "null instanceof [type]" also returns false */
             if (!(o instanceof vetor)) {
