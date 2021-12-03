@@ -423,7 +423,7 @@ public class jClientC2 {
 
     public class Node implements Comparable<Node> {
         // Id for readability of result purposes
-        private static int idCounter = 0;
+        private int idCounter = 0;
         public int id;
         public vetor value;
   
@@ -451,7 +451,7 @@ public class jClientC2 {
               return Double.compare(this.f, n.f);
         }
   
-        public static class Edge {
+        public class Edge {
               Edge(int weight, Node node){
                     this.weight = 1;
                     this.node = node;
