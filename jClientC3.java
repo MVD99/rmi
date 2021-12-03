@@ -1,3 +1,4 @@
+ 
 /*
     This file is part of ciberRatoToolsSrc.
 
@@ -122,10 +123,14 @@ class MapHandler extends DefaultHandler {
  * example of a basic agent
  * implemented using the java interface library.
  */
-public class jClientC2 {
+public class jClientC3 {
 
     ciberIF cif;
     Map map;
+    static String pathName = new String();
+    public static void setPath(String a){
+        pathName = a;
+    }
     enum State {GA, RL, RR, INV, END}
 
     public static void main(String[] args) throws IOException{
@@ -134,13 +139,15 @@ public class jClientC2 {
         int pos;
         int arg;
         Map map;
+        int nbeacons;
 
 
         //default values
         host = "localhost";
-        robName = "jClientC2";
+        robName = "jClientC3";
         pos = 1;
         map = null;
+        nbeacons = 3;
 
         // parse command-line arguments
         try {
@@ -179,6 +186,18 @@ public class jClientC2 {
                                 arg += 2;
                         }
                 }
+                else if(args[arg].equals("--path") || args[arg].equals("-pa")) {
+                    if(args.length > arg+1) {
+                        jClientC3.setPath(args[arg+1]);
+                        arg += 2;
+                    }
+                }
+                else if(args[arg].equals("--nBeacons") || args[arg].equals("-n")) {
+                    if(args.length > arg+1) {
+                        nbeacons=Integer.parseInt(args[arg+1]);
+                        arg += 2;
+                    }
+                }
                 else throw new Exception();
             }
         }
@@ -188,12 +207,12 @@ public class jClientC2 {
         }
 
         // create client
-        jClientC2 client = new jClientC2();
+        jClientC3 client = new jClientC3();
 
         client.robName = robName;
         double[] angles = {0,90,-90,180};
         // register robot in simulator
-        client.cif.InitRobot2(robName, pos, angles, host);
+        client.cif.InitRobot2(robName, pos, angles, host, nbeacons);
         client.map = map;
         client.printMap();
 
@@ -203,12 +222,13 @@ public class jClientC2 {
     }
 
     // Constructor
-    jClientC2() {
+    jClientC3() {
             cif = new ciberIF();
             beacon = new beaconMeasure();
-
             beaconToFollow = 0;
             ground=-1;
+            nbeacons = cif.GetNumberOfBeacons();
+            objetivos = new vetor[nbeacons];
     }
 
     /**
@@ -219,6 +239,7 @@ public class jClientC2 {
         x0=cif.GetX();
         y0=cif.GetY();
         init=true;
+        
         fillMap();
         while(true) {
                 cif.ReadSensors(); // ler os sensores .....
@@ -309,8 +330,7 @@ public class jClientC2 {
 
                 case END:
                     cif.DriveMotors(0.0,0.0);
-                    writeMap();
-                    cif.Finish();
+                    writeCaminho();
                     System.exit(0);
                     break;
             }
@@ -557,6 +577,10 @@ public class jClientC2 {
             abc.addFilho(vizinhos().get(k));
         }
         coordsAntigas.add(abc);
+
+        if(ground != -1){
+            if(objetivos[ground]!=null) objetivos[ground] = abc;
+        }
         //MAPEAR
         //detetar paredes, se for ou | ou -, se n for entao "x"
         //se coordenada nao for parede e nao tiver sido visitada e nao estiver nos visitaveis, adiciona aos visitaveis
@@ -673,22 +697,48 @@ public class jClientC2 {
     }
 
 
-    public void writeMap() throws IOException{ //Escreve o mapa no file
-        File fileMap = new File("mapa.txt");
-        fileMap.createNewFile();
+    public void writeCaminho() throws IOException{ //Escreve o mapa no file
+        LinkedList<vetor> tmp = new LinkedList<vetor>();
+        File fileMap = new File (pathName);
         Scanner fin = new Scanner (fileMap);
+        if (fileMap.createNewFile()) {
+            System.out.println("File created: " + fileMap.getName());
+        } else {
+            System.out.println("File already exists. Cleaning and rewriting the file.");
+        }
         FileWriter writeFile = new FileWriter(fileMap);
         String a = new String();
-        for(int lin=1; lin<28;lin++){
-            a="";
-            for (int col=1; col<56; col++){
-                a = a + coords[lin][col]; // a = linha toda
-                if (col==55) a = a + "\n";
-            }
-            writeFile.write(a);
+        tmp = addCaminho();
+        for(int i=0; i<tmp.size();i++){ 
+            //vetorX vetorY-> imprimir com um espaco no meio
+            writeFile.write(tmp.get(i).toString()+"\n");
         }
         fin.close();
         writeFile.close();    
+    }
+
+    public LinkedList<vetor> addCaminho(){
+        LinkedList<vetor> tmp = new LinkedList<vetor>();
+        LinkedList<vetor> tmp2 = new LinkedList<vetor>();
+        for(int i=0; i<objetivos.length-1;i++){
+            Node target= new Node(objetivos[i+1]);
+            Node head= new Node(objetivos[i]);
+            Node res = aStar(head, target);
+            tmp2=printPath(res);
+            for(int j=0; j<tmp2.size(); j++){
+                tmp.addLast(tmp2.get(j));
+            }
+            if(i==objetivos.length-2){
+                target= new Node(objetivos[i+1]);
+                head= new Node(objetivos[0]);
+                res = aStar(head, target);
+                tmp2=printPath(res);
+                for(int k=0; k<tmp2.size(); k++){
+                    tmp.addLast(tmp2.get(k));
+                }
+            }
+        }
+        return tmp;
     }
 
     public boolean onMap(vetor v) {  //Verificar se as coordenadas dadas já estão preenchidas
@@ -707,7 +757,7 @@ public class jClientC2 {
 
 
     static void print_usage() {
-        System.out.println("Usage: java jClientC2 [--robname <robname>] [--pos <pos>] [--host <hostname>[:<port>]] [--map <map_filename>]");
+        System.out.println("Usage: java jClientC3 [--robname <robname>] [--pos <pos>] [--host <hostname>[:<port>]] [--map <map_filename>]");
     }
 
     public void printMap() {
@@ -842,6 +892,8 @@ public class jClientC2 {
     private LinkedList<vetor> coordsAntigas = new LinkedList<vetor>(); //linhas, colunas
     private LinkedList<vetor> visitaveis = new LinkedList<vetor>();
     private LinkedList<vetor> caminho = new LinkedList<vetor>();
+    private int nbeacons;
+    private vetor[] objetivos;
     
     public class vetor{
         private double x;
@@ -893,6 +945,13 @@ public class jClientC2 {
         }
 
         @Override
+        public String toString(){
+            String a = new String();
+            a = x +" "+y;
+            return a;
+        }
+
+        @Override
         public boolean equals(Object o){
             // If the object is compared with itself then return true 
             if (o == this) {
@@ -914,5 +973,3 @@ public class jClientC2 {
     }
 
 };
-
-

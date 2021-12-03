@@ -323,7 +323,7 @@ public class jClientC1 {
     private String robName;
     private double irSensor0, irSensor1, irSensor2, compass;
     private beaconMeasure beacon;
-    private int    ground;
+    private int ground;
     private boolean collision;
 
     private State state;
