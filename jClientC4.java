@@ -219,6 +219,8 @@ public class jClientC4 {
         y0=cif.GetY();
         init=true;
         fillMap();
+        nbeacons = cif.GetNumberOfBeacons();
+        objetivos = new vetor[nbeacons];
         while(true) {
             cif.ReadSensors(); 
             decide();
@@ -302,10 +304,14 @@ public class jClientC4 {
                     break;
 
                 case END:
+                    if(cif.GetFinished()){ //verificar se deu finish
+                        System.exit(0);
+                    }
                     cif.DriveMotors(0.0,0.0);
                     writeMap();
+                    //writeCaminho(); //->nao funciona
                     cif.Finish();
-                    System.exit(0);
+                   
                     break;
             }
             return;
@@ -571,6 +577,50 @@ public class jClientC4 {
         writeFile.close();    
     }
 
+    public void writeCaminho() throws IOException{ //Escreve o caminho no file
+        LinkedList<vetor> tmp = new LinkedList<vetor>();
+        File fileMap = new File ("caminh.txt");
+        Scanner fin = new Scanner (fileMap);
+        if (fileMap.createNewFile()) {
+            System.out.println("File created: " + fileMap.getName());
+        } else {
+            System.out.println("File already exists. Cleaning and rewriting the file.");
+        }
+        FileWriter writeFile = new FileWriter(fileMap);
+        String a = new String();
+        tmp = addCaminho();
+        for(int i=0; i<tmp.size();i++){ 
+            //vetorX vetorY-> imprimir com um espaco no meio
+            writeFile.write(tmp.get(i).toString()+"\n");
+        }
+        fin.close();
+        writeFile.close();    
+    }
+
+    public LinkedList<vetor> addCaminho(){
+        LinkedList<vetor> tmp = new LinkedList<vetor>();
+        LinkedList<vetor> tmp2 = new LinkedList<vetor>();
+        for(int i=0; i<objetivos.length-1;i++){
+            Node target= new Node(objetivos[i+1]);
+            Node head= new Node(objetivos[i]);
+            Node res = aStar(head, target);
+            tmp2=printPath(res);
+            for(int j=0; j<tmp2.size(); j++){
+                tmp.addLast(tmp2.get(j));
+            }
+            if(i==objetivos.length-2){
+                target= new Node(objetivos[i+1]);
+                head= new Node(objetivos[0]);
+                res = aStar(head, target);
+                tmp2=printPath(res);
+                for(int k=0; k<tmp2.size(); k++){
+                    tmp.addLast(tmp2.get(k));
+                }
+            }
+        }
+        return tmp;
+    }
+
     public boolean onMap(vetor v) {  //Verificar se as coordenadas dadas já estão preenchidas
         int col = (int) (v.getX())+28;
         int lin = 14 - (int) (v.getY());
@@ -597,7 +647,21 @@ public class jClientC4 {
                System.out.println(map.labMap[r]);
            }
     }
-    
+
+    public static LinkedList<vetor> printPath(Node target){    
+        if(target==null){
+            return null;
+        } 
+        LinkedList<vetor> path = new LinkedList<>();
+        while(target.parent != null){
+            path.add(target.value);
+            target = target.parent;
+        }
+        path.add(target.value);
+        Collections.reverse(path);
+        return path;
+    }
+
 
     //AUXILIARES
     //ver se existe parede nas 4 direcoes
@@ -722,8 +786,9 @@ public class jClientC4 {
     private LinkedList<vetor> coordsAntigas = new LinkedList<vetor>(); //linhas, colunas
     private LinkedList<vetor> visitaveis = new LinkedList<vetor>();
     private LinkedList<vetor> caminho = new LinkedList<vetor>();
-    
-   
+    private int nbeacons;
+    private vetor[] objetivos;
+
 public class Node implements Comparable<Node> {
         // Id for readability of result purposes
         private int idCounter = 0;
@@ -823,20 +888,7 @@ public class Node implements Comparable<Node> {
         return null;
     }
         
-    public static LinkedList<vetor> printPath(Node target){    
-        if(target==null){
-            return null;
-        } 
-        LinkedList<vetor> path = new LinkedList<>();
-        while(target.parent != null){
-            path.add(target.value);
-            target = target.parent;
-        }
-        path.add(target.value);
-        Collections.reverse(path);
-        return path;
-    }
-
+    
     public class vetor{
         private double x;
         private double y;
@@ -885,6 +937,14 @@ public class Node implements Comparable<Node> {
                 System.out.println(" filho: "+ v.x +" "+v.y);
             }
         }
+
+        @Override
+        public String toString(){
+            String a = new String();
+            a = x +" "+y;
+            return a;
+        }
+
 
         @Override
         public boolean equals(Object o){

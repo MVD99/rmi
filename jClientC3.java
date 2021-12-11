@@ -227,7 +227,7 @@ public class jClientC3 {
             beacon = new beaconMeasure();
             beaconToFollow = 0;
             ground=-1;
-            objetivos = new vetor[nbeacons];
+           
     }
 
     /**
@@ -239,6 +239,8 @@ public class jClientC3 {
         y0=cif.GetY();
         init=true;
         nbeacons = cif.GetNumberOfBeacons();
+        objetivos = new vetor[nbeacons];
+        System.out.println("olamoiajdiw" + nbeacons);
         fillMap();
         while(true) {
                 cif.ReadSensors(); // ler os sensores .....
