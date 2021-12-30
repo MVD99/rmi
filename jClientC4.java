@@ -18,6 +18,15 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+
+/*
+    Objetivos a atingir:
+    Corrigir o MakePath do C3
+    --erro está na função AddCaminho
+
+    Adicionar funcao para verificar se ja passou por todos os beacons
+*/
+
 import java.beans.PersistenceDelegate;
 import java.io.*;
 import java.net.*;
@@ -220,7 +229,6 @@ public class jClientC4 {
         init=true;
         fillMap();
         nbeacons = cif.GetNumberOfBeacons();
-        objetivos = new vetor[nbeacons];
         while(true) {
             cif.ReadSensors(); 
             decide();
@@ -309,7 +317,7 @@ public class jClientC4 {
                     }
                     cif.DriveMotors(0.0,0.0);
                     writeMap();
-                    //writeCaminho(); //->nao funciona
+                    writeCaminho(); //->nao funciona
                     cif.Finish();
                    
                     break;
@@ -579,7 +587,7 @@ public class jClientC4 {
 
     public void writeCaminho() throws IOException{ //Escreve o caminho no file
         LinkedList<vetor> tmp = new LinkedList<vetor>();
-        File fileMap = new File ("caminh.txt");
+        File fileMap = new File ("caminho.txt");
         Scanner fin = new Scanner (fileMap);
         if (fileMap.createNewFile()) {
             System.out.println("File created: " + fileMap.getName());
@@ -597,20 +605,23 @@ public class jClientC4 {
         writeFile.close();    
     }
 
-    public LinkedList<vetor> addCaminho(){
+    public LinkedList<vetor> addCaminho(){ //faz caminho de todos os beacons detetados
         LinkedList<vetor> tmp = new LinkedList<vetor>();
         LinkedList<vetor> tmp2 = new LinkedList<vetor>();
-        for(int i=0; i<objetivos.length-1;i++){
-            Node target= new Node(objetivos[i+1]);
-            Node head= new Node(objetivos[i]);
+
+        for(int i=0; i<objetivos.size()-1;i++){     
+            Node target= new Node(objetivos.get(i+1));
+            Node head= new Node(objetivos.get(i));
             Node res = aStar(head, target);
-            tmp2=printPath(res);
+            tmp2=printPath(res); //inverter
+
             for(int j=0; j<tmp2.size(); j++){
                 tmp.addLast(tmp2.get(j));
             }
-            if(i==objetivos.length-2){
-                target= new Node(objetivos[i+1]);
-                head= new Node(objetivos[0]);
+            
+            if(i==objetivos.size()-2){
+                target= new Node(objetivos.get(i));
+                head= new Node(objetivos.get(0));
                 res = aStar(head, target);
                 tmp2=printPath(res);
                 for(int k=0; k<tmp2.size(); k++){
@@ -787,7 +798,7 @@ public class jClientC4 {
     private LinkedList<vetor> visitaveis = new LinkedList<vetor>();
     private LinkedList<vetor> caminho = new LinkedList<vetor>();
     private int nbeacons;
-    private vetor[] objetivos;
+    private LinkedList<vetor> objetivos;
 
 public class Node implements Comparable<Node> {
         // Id for readability of result purposes

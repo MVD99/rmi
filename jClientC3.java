@@ -789,7 +789,7 @@ public class jClientC3 {
         return false;
     }
 
-    //Dar coordenadas
+    //Dar coordenadas 1 unidade
     public vetor coordEsq(){
         vetor v= new vetor(0,0);
         if(compass<45 && compass >=-45) v.setXY(x,y+1);
@@ -822,7 +822,7 @@ public class jClientC3 {
         else  v.setXY(x+1,y);
         return v;
     }
-
+    
     //2 coordenadas -> centro da celula
     public vetor coord2Esq(){
         vetor v= new vetor(0,0);
