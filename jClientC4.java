@@ -461,6 +461,14 @@ public class jClientC4 {
         vetor pd = new vetor();
         vetor pt = new vetor();
 
+// adicionar qualquer coisa para ver se a posicao atual é beacon e acrescenta lo aos objetivos
+        /*if(x==xdobeacon && y=ydobeacon){
+            vetor aux = new vector();
+            aux.setX(x);
+            aux.setY(y);
+            objetivo.add(aux); //indice do beacon objetivo.add(....,aux);
+        }*/
+
         if(ParedeDireita()){
             if(!par(coordDir()))
                 addToMap(coordDir(),"|");
@@ -632,6 +640,19 @@ public class jClientC4 {
         return tmp;
     }
 
+    public boolean SeeBeacons(){ //para ver se ja passou em todos os beacons
+        int count=0;
+        for (int i = 0;i<objetivos.size();i++){
+            if (objetivos.get(i)!= null){
+                count++;
+            }
+        }
+        if(count == nbeacons){
+            return true;
+        }
+        return false;
+    }
+
     public boolean onMap(vetor v) {  //Verificar se as coordenadas dadas já estão preenchidas
         int col = (int) (v.getX())+28;
         int lin = 14 - (int) (v.getY());
@@ -798,7 +819,7 @@ public class jClientC4 {
     private LinkedList<vetor> visitaveis = new LinkedList<vetor>();
     private LinkedList<vetor> caminho = new LinkedList<vetor>();
     private int nbeacons;
-    private LinkedList<vetor> objetivos;
+    private LinkedList<vetor> objetivos; //variavel com as coordenadas dos goals
 
 public class Node implements Comparable<Node> {
         // Id for readability of result purposes
