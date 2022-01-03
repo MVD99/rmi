@@ -24,7 +24,7 @@
     Corrigir o MakePath do C3
     --erro está na função AddCaminho
 
-    Adicionar funcao para verificar se ja passou por todos os beacons
+    
 */
 
 import java.beans.PersistenceDelegate;
@@ -229,6 +229,8 @@ public class jClientC4 {
         init=true;
         fillMap();
         nbeacons = cif.GetNumberOfBeacons();
+        objetivos = new vetor[nbeacons]; 
+        vetor aux = new vetor ();
         while(true) {
             cif.ReadSensors(); 
             decide();
@@ -405,6 +407,7 @@ public class jClientC4 {
         }
         cif.DriveMotors(l, r);
     }
+   
 
 
     //para nao ir para cima quando esta a rodado para baixo ou para a esquerda (-90 e 180)
@@ -424,7 +427,10 @@ public class jClientC4 {
         Node target= new Node(visitaveis.getLast());
         Node head= new Node(coordsAntigas.getLast());
         Node res = aStar(head, target);
-        caminho=printPath(res);
+        caminho=printPath(res);     
+        for(int i =0 ;i<caminho.size();i++){ //nao tira este print
+            System.out.println("caminho: x-> " + caminho.get(i).getX() + " y-> " + caminho.get(i).getY());
+        }
         runCaminho();
     }
 
@@ -462,12 +468,11 @@ public class jClientC4 {
         vetor pt = new vetor();
 
 // adicionar qualquer coisa para ver se a posicao atual é beacon e acrescenta lo aos objetivos
-        /*if(x==xdobeacon && y=ydobeacon){
-            vetor aux = new vector();
-            aux.setX(x);
-            aux.setY(y);
-            objetivo.add(aux); //indice do beacon objetivo.add(....,aux);
-        }*/
+        if(ground>=0){ 
+            System.out.println("alvo: "+ground);
+            vetor aux = new vetor(x,y);
+            objetivos[ground] = aux;
+        }
 
         if(ParedeDireita()){
             if(!par(coordDir()))
@@ -596,18 +601,17 @@ public class jClientC4 {
     public void writeCaminho() throws IOException{ //Escreve o caminho no file
         LinkedList<vetor> tmp = new LinkedList<vetor>();
         File fileMap = new File ("caminho.txt");
+        fileMap.createNewFile();
         Scanner fin = new Scanner (fileMap);
-        if (fileMap.createNewFile()) {
-            System.out.println("File created: " + fileMap.getName());
-        } else {
-            System.out.println("File already exists. Cleaning and rewriting the file.");
-        }
         FileWriter writeFile = new FileWriter(fileMap);
         String a = new String();
-        tmp = addCaminho();
-        for(int i=0; i<tmp.size();i++){ 
+        //tmp = addCaminho(); //esta aqui o problema
+        System.out.println("estou aquikwneofnwkoefn");
+        for(int i=0; i<caminho.size();i++){ 
             //vetorX vetorY-> imprimir com um espaco no meio
-            writeFile.write(tmp.get(i).toString()+"\n");
+            System.out.println("estou aqui");
+            a = a + caminho.get(i).getX() + " " + caminho.get(i).getY() + "\n";
+            writeFile.write(a);
         }
         fin.close();
         writeFile.close();    
@@ -617,9 +621,9 @@ public class jClientC4 {
         LinkedList<vetor> tmp = new LinkedList<vetor>();
         LinkedList<vetor> tmp2 = new LinkedList<vetor>();
 
-        for(int i=0; i<objetivos.size()-1;i++){     
-            Node target= new Node(objetivos.get(i+1));
-            Node head= new Node(objetivos.get(i));
+        for(int i=0; i<objetivos.length-1;i++){     
+            Node target= new Node(objetivos[i+1]);
+            Node head= new Node(objetivos[i]);
             Node res = aStar(head, target);
             tmp2=printPath(res); //inverter
 
@@ -627,9 +631,9 @@ public class jClientC4 {
                 tmp.addLast(tmp2.get(j));
             }
             
-            if(i==objetivos.size()-2){
-                target= new Node(objetivos.get(i));
-                head= new Node(objetivos.get(0));
+            if(i==objetivos.length-2){
+                target= new Node(objetivos[i]);
+                head= new Node(objetivos[0]);
                 res = aStar(head, target);
                 tmp2=printPath(res);
                 for(int k=0; k<tmp2.size(); k++){
@@ -642,8 +646,8 @@ public class jClientC4 {
 
     public boolean SeeBeacons(){ //para ver se ja passou em todos os beacons
         int count=0;
-        for (int i = 0;i<objetivos.size();i++){
-            if (objetivos.get(i)!= null){
+        for (int i = 0;i<objetivos.length;i++){
+            if (objetivos[i]!= null){
                 count++;
             }
         }
@@ -819,7 +823,7 @@ public class jClientC4 {
     private LinkedList<vetor> visitaveis = new LinkedList<vetor>();
     private LinkedList<vetor> caminho = new LinkedList<vetor>();
     private int nbeacons;
-    private LinkedList<vetor> objetivos; //variavel com as coordenadas dos goals
+    private vetor[] objetivos; //variavel com as coordenadas dos goals
 
 public class Node implements Comparable<Node> {
         // Id for readability of result purposes
