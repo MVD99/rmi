@@ -314,6 +314,7 @@ public class jClientC4 {
                     break;
 
                 case END:
+                   
                     if(cif.GetFinished()){ //verificar se deu finish
                         System.exit(0);
                     }
@@ -471,7 +472,7 @@ public class jClientC4 {
         if(ground>=0){ 
             System.out.println("alvo: "+ground);
             vetor aux = new vetor(x,y);
-            objetivos[ground] = aux;
+            objetivos[ground] = aux;            
         }
 
         if(ParedeDireita()){
@@ -599,48 +600,88 @@ public class jClientC4 {
     }
 
     public void writeCaminho() throws IOException{ //Escreve o caminho no file
+        System.out.println("FUI CHAMADA");       
         LinkedList<vetor> tmp = new LinkedList<vetor>();
-        File fileMap = new File ("caminho.txt");
+        tmp = addCaminho(); 
+        File fileMap = new File("caminho.txt");
         fileMap.createNewFile();
         Scanner fin = new Scanner (fileMap);
         FileWriter writeFile = new FileWriter(fileMap);
         String a = new String();
-        //tmp = addCaminho(); //esta aqui o problema
-        System.out.println("estou aquikwneofnwkoefn");
-        for(int i=0; i<caminho.size();i++){ 
-            //vetorX vetorY-> imprimir com um espaco no meio
-            System.out.println("estou aqui");
-            a = a + caminho.get(i).getX() + " " + caminho.get(i).getY() + "\n";
-            writeFile.write(a);
-        }
+        
+        for(int i=0; i<tmp.size();i++){ 
+        
+            //if(tmp.get(i).getX()==objetivos[j].getX() && tmp.get(i).getY()==objetivos[j].getY()){
+              //  a = a + tmp.get(i).getX() + " " + tmp.get(i).getY() + " #" + j+1 + "\n";
+            //}else{
+             a = a + tmp.get(i).getX() + " " + tmp.get(i).getY() + "\n";
+          //}
+        }  
+        
+        writeFile.write(a);
         fin.close();
-        writeFile.close();    
+        writeFile.close();  
+        
+          
+    }
+    
+    public LinkedList<vetor> setCaminhoFinal(vetor posicaoVer, vetor posicaoAtual){
+        LinkedList<vetor> tmp = new LinkedList<vetor>();
+        
+        Node target= new Node(posicaoVer);
+        Node head= new Node(posicaoAtual);
+        System.out.println("entrei aStar");
+        Node res = aStar(head, target);
+        System.out.println("sai aStar");
+        tmp=printPath(res);     
+        
+        return tmp;
     }
 
     public LinkedList<vetor> addCaminho(){ //faz caminho de todos os beacons detetados
-        LinkedList<vetor> tmp = new LinkedList<vetor>();
+        //setCaminhoFinal();
+        
         LinkedList<vetor> tmp2 = new LinkedList<vetor>();
-
-        for(int i=0; i<objetivos.length-1;i++){     
-            Node target= new Node(objetivos[i+1]);
-            Node head= new Node(objetivos[i]);
-            Node res = aStar(head, target);
-            tmp2=printPath(res); //inverter
-
-            for(int j=0; j<tmp2.size(); j++){
-                tmp.addLast(tmp2.get(j));
-            }
-            
-            if(i==objetivos.length-2){
-                target= new Node(objetivos[i]);
-                head= new Node(objetivos[0]);
-                res = aStar(head, target);
-                tmp2=printPath(res);
-                for(int k=0; k<tmp2.size(); k++){
-                    tmp.addLast(tmp2.get(k));
+        LinkedList<vetor> tmp = new LinkedList<vetor>();
+       
+        /*vetor posicaoVer1 = new vetor();
+        posicaoVer1.setXY(objetivos[1].getX(),objetivos[1].getY());
+        vetor posicaoAtual1 = new vetor();
+        posicaoAtual1.setXY(objetivos[0].getX(),objetivos[0].getY());
+        //System.out.println ("x-> " + ola.getX() + " y-> " + ola.getY());
+        //visitaveis.addLast(objetivos[1]);
+        //coordsAntigas.addLast(objetivos[0]);
+        tmp = setCaminhoFinal(posicaoVer1, posicaoAtual1);
+        */
+  
+        for(int i=0; i<objetivos.length-1;i++){  
+            vetor posicaoVer = new vetor();
+            posicaoVer.setXY(objetivos[i+1].getX(),objetivos[i+1].getY());
+            vetor posicaoAtual = new vetor();
+            posicaoAtual.setXY(objetivos[i].getX(),objetivos[i].getY());
+            tmp2 = setCaminhoFinal(posicaoVer, posicaoAtual);
+                    
+            System.out.println("entrei addcaminho");
+            for(int j =0 ;j<tmp2.size()-1;j++){
+                if(tmp2.get(j).getX() != tmp2.get(j+1).getX() || tmp2.get(j).getY() != tmp2.get(j+1).getY()){
+                   tmp.add(tmp2.get(j));
                 }
+                //System.out.println("caminho Final: x-> " + tmp2.get(j).getX() + " y-> " + tmp2.get(j).getY());
             }
         }
+        vetor AuxposicaoVer = new vetor();
+        AuxposicaoVer.setXY(0,0);
+        vetor AuxposicaoAtual = new vetor();
+        AuxposicaoAtual.setXY(objetivos[objetivos.length-1].getX(),objetivos[objetivos.length-1].getY());
+        tmp2 = setCaminhoFinal(AuxposicaoVer, AuxposicaoAtual);
+        for(int j =0 ;j<tmp2.size();j++){ 
+            tmp.addLast(tmp2.get(j));                
+        } 
+
+        for(int j =0 ;j<tmp.size();j++){              
+          //  System.out.println("caminho Final: x-> " + tmp.get(j).getX() + " y-> " + tmp.get(j).getY());
+        }
+       
         return tmp;
     }
 
@@ -824,6 +865,8 @@ public class jClientC4 {
     private LinkedList<vetor> caminho = new LinkedList<vetor>();
     private int nbeacons;
     private vetor[] objetivos; //variavel com as coordenadas dos goals
+    private boolean countWrite=true; // se ja escreveu tudo 1 vez
+
 
 public class Node implements Comparable<Node> {
         // Id for readability of result purposes
@@ -843,7 +886,7 @@ public class Node implements Comparable<Node> {
         public double f = g+h;
        
   
-        Node(vetor v){
+        public Node(vetor v){
               value = v;
               h=0;
               this.id = idCounter++;
