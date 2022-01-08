@@ -481,8 +481,18 @@ public class jClientC4 {
             else
                 addToMap(coordDir(),"-");
         }else{
-            addToMap(coordDir(), "X");
-            addToMap(coord2Dir(), "X");
+           /* if(ground>=0){
+                //vetor vaux = new vetor(objetivos[ground].getX(),objetivos[ground].getY());
+                //int aux = Fcont(vaux);
+                System.out.println("ENTREI" + Integer.toString(ground));
+                
+                addToMap(coord2Dir(), "A");
+            }else{
+                System.out.println("COISO");*/
+                addToMap(coord2Dir(), "X");
+                
+          //  }
+           addToMap(coordDir(), "X");
             pd.setXY(coord2Dir());
             if(!AntContem(pd)){
                 localViz.add(pd);
@@ -495,8 +505,19 @@ public class jClientC4 {
             else 
                 addToMap(coordEsq(),"-");
         }else{
-            addToMap(coordEsq(), "X");
-            addToMap(coord2Esq(), "X");
+            /*if(ground>=0){
+               // vetor vaux = new vetor(objetivos[ground].getX(),objetivos[ground].getY());
+                //int aux = Fcont(vaux);
+                System.out.println("ENTREI" + Integer.toString(ground));
+                
+                addToMap(coord2Esq(), "A");
+                //addToMap(coordEsq(), Integer.toString(ground));
+            }else{
+                System.out.println("COISO");*/
+                addToMap(coord2Esq(), "X");
+                 
+           // }
+           addToMap(coordEsq(), "X");
             pe.setXY(coord2Esq());
             if(!AntContem(pe)) {
                 localViz.add(pe);
@@ -509,8 +530,18 @@ public class jClientC4 {
             else
                 addToMap(coordFrente(),"-");
         }else{
-            addToMap(coordFrente(), "X");
-            addToMap(coord2Frente(), "X");
+          /*  if(ground>=0){
+                //vetor vaux = new vetor(objetivos[ground].getX(),objetivos[ground].getY());
+                //int aux = Fcont(vaux);
+                System.out.println("ENTREI" + Integer.toString(ground));
+                addToMap(coord2Frente(), "A");
+              //  addToMap(coordFrente(), Integer.toString(ground));
+            }else{
+                System.out.println("COISO");*/
+                addToMap(coord2Frente(), "X");
+               
+           // }
+             addToMap(coordFrente(), "X");
             pf.setXY(coord2Frente());
             if(!AntContem(pf)){
                 localViz.add(pf);
@@ -523,8 +554,19 @@ public class jClientC4 {
             else
                 addToMap(coordTras(),"-");
         }else{
-            addToMap(coordTras(), "X");
-            addToMap(coord2Tras(), "X");
+           /* if(ground>=0){
+               // vetor vaux = new vetor(objetivos[ground].getX(),objetivos[ground].getY());
+               // int aux = Fcont(vaux);
+               System.out.println("ENTREI" + Integer.toString(ground));
+                
+                addToMap(coord2Tras(), "A");
+               // addToMap(coordTras(), Integer.toString(ground));
+            }else{
+                System.out.println("COISO");*/
+                addToMap(coord2Tras(), "X");
+               
+           // }
+             addToMap(coordTras(), "X");
             pt.setXY(coord2Tras());
             if(!AntContem(pt)){
                 if (!visitaveis.contains(pd))visitaveis.add(pt);
@@ -567,16 +609,17 @@ public class jClientC4 {
 
 //------------------------------------- MAPA MAPA MAPA -------------------------------------
     public void fillMap(){ //chamada no estado init para encher o ARRAY do mapa com " "
-        System.out.println("wjnohwjepfijwjoenfowheiojqwmdnonwowvwev");
         for(int i=0; i<28;i++){ //percorremos as linhas
             for (int j=0; j<56; j++){ //percorremos as colunas para cada linha
                 coords[i][j]=" ";
-                if(i==14 && j==28) coords[i][j]= "I";
+                if(i==14 && j==28) {
+                    coords[i][j]= "I";                    
+                }
             }
         }
     }
 
-    public void addToMap(vetor v, String a) throws IOException { //escrever no coords a String certa REVER
+    public void addToMap(vetor v, String a) throws IOException { //escrever no coords a String certa 
         int col = (int) (v.getX())+28;
         int lin = 14 - (int)(v.getY());
         if(!onMap(v))coords[lin][col]= a;
@@ -600,6 +643,17 @@ public class jClientC4 {
         writeFile.close();    
     }
 
+    public int Fcont(vetor tmp){ //retorna onde esta o target
+        for(int i = 0;i<objetivos.length;i++){
+            vetor obj = new vetor();
+            obj.setXY(objetivos[i].getX(),objetivos[i].getY());
+            if(obj.getX()==tmp.getX() && obj.getY()==tmp.getY()){
+                return i;
+            }
+        }
+        return -1;
+    }
+
     public void writeCaminho() throws IOException{ //Escreve o caminho no file      
         LinkedList<vetor> tmp = new LinkedList<vetor>();
         tmp = addCaminho(); 
@@ -609,8 +663,13 @@ public class jClientC4 {
         FileWriter writeFile = new FileWriter(fileMap);
         String a = new String();
         
-        for(int i=0; i<tmp.size();i++){ 
-            a = a + tmp.get(i).getX() + " " + tmp.get(i).getY() + "\n";
+        for(int i=0; i<tmp.size();i++){
+            int aux = Fcont(tmp.get(i)); 
+            if(aux!=-1){
+                a = a + tmp.get(i).getX() + " " + tmp.get(i).getY() + " #" + aux + "\n";
+            }else{
+                a = a + tmp.get(i).getX() + " " + tmp.get(i).getY() + "\n";
+            }
         }  
         
         writeFile.write(a);
