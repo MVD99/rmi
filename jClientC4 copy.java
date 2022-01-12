@@ -21,7 +21,8 @@
 
 /*
     Objetivos a atingir:
-    - adicionar funçoes do X, Y, Z
+    Corrigir o MakePath do C3
+    --erro está na função AddCaminho
 
     
 */
@@ -223,13 +224,8 @@ public class jClientC4 {
      */
     public void mainLoop () throws IOException{ //ver aqui.....
         cif.ReadSensors();
-        x0=0;
-        y0=0;
-        xlast=0;
-        ylast=0;
-        compassLast=0;
-        outlLast=0;
-        outrLast=0;
+        x0=cif.GetX();
+        y0=cif.GetY();
         init=true;
         fillMap();
         nbeacons = cif.GetNumberOfBeacons();
@@ -269,16 +265,14 @@ public class jClientC4 {
 
             if(cif.IsBeaconReady(beaconToFollow))
                     beacon = cif.GetBeaconSensor(beaconToFollow);
-            //System.out.println("\n Measures: ir0=" + irSensor0 + " ir1=" + irSensor1 + " ir2=" + irSensor2 + " ir3="+ irSensor3+"\n" + "bussola=" + compass + " X=" + x + " Y=" + y);
 
             if(targetReached()){
-                System.out.println("\n Measures: ir0=" + irSensor0 + " ir1=" + irSensor1 + " ir2=" + irSensor2 + " ir3="+ irSensor3+"\n" + "bussola=" + compass + " X=" + x + " Y=" + y);
+                System.out.println("\n Measures: ir0=" + irSensor0 + " ir1=" + irSensor1 + " ir2=" + irSensor2 + " ir3="+ irSensor3+"\n" + "bussola=" + compass + " GPS-X=" + x + " GPS-y=" + y);
                 System.out.println("f: "+ParedeFrente()+" esq: "+ParedeEsquerda()+" dir: "+ParedeDireita()+" tras: "+ParedeTras());
                 System.out.println("init: "+init+" targetReached? "+targetReached() + "\n");
             }
             //funcao geral: detetar se está no centro, se sim corre mapping e calcular next, se nao manda andar para onde é preciso
             //andar implica ou curvas ou ahead
-
             state = Estados();
             switch(state) { 
 
@@ -326,7 +320,7 @@ public class jClientC4 {
                     }
                     cif.DriveMotors(0.0,0.0);
                     writeMap();
-                    writeCaminho(); 
+                    writeCaminho(); //->nao funciona
                     cif.Finish();
                    
                     break;
@@ -367,21 +361,6 @@ public class jClientC4 {
         else return State.GA;
     }
     
-    public void updateAll(double l, double r){ //update the values after a movement
-        System.out.println(" XLast=" + xlast + " YLast=" + ylast + " outRLast: " + outrLast +" outLLast: " + outlLast + " compassLast: "+compassLast);
-        double outr = (r+outrLast)/2;
-        double outl = (l+outlLast)/2;
-        double lin = (outr+outl)/2;
-        x = xlast+lin*Math.cos(compassLast); 
-        y = ylast+lin*Math.sin(compassLast);
-        outrLast = outr;
-        outlLast = outl;
-        ylast=y;
-        xlast=x;
-        compassLast=compass;
-        System.out.println( "lin: " + lin+ " outR: " + outr + " outL " + outl +" X=" + x + " Y=" + y + " compass " + compass);
-    }
-
     public boolean targetReached(){ //chegou ao objetivo?
         if (Math.abs(x-next.getX())<=0.15 && Math.abs(y-next.getY())<=0.15){
             return true;
@@ -395,14 +374,9 @@ public class jClientC4 {
         double rot = 0.5 * deltaC;
         double l = -rot;
         double r = rot;
-      //  x=coordsAntigas.getLast().getX()+Math.cos(compass);
-       // y=coordsAntigas.getLast().getY()+Math.cos(compass);
-        updateAll(l,r);
-        cif.DriveMotors(l, r);
-        
 
-       // double lin = /2;
-        
+        cif.DriveMotors(l, r);
+
     }
 
     public void goRight(){
@@ -410,17 +384,12 @@ public class jClientC4 {
         double rot = 0.5 * deltaC;
         double l = rot;
         double r = -rot;
-       // x=coordsAntigas.getLast().getX()+Math.cos(compass);
-       // y=coordsAntigas.getLast().getY()+Math.cos(compass);
-        updateAll(l,r);
+
         cif.DriveMotors(l, r);
-       
     }
 
     public void goInv(){
-        updateAll(0.15,-0.15);
         cif.DriveMotors(0.15,-0.15);
-       
     }
 
     public void goAhead(){ //yr -> y inicial -> funcao de andar para a frente
@@ -428,8 +397,7 @@ public class jClientC4 {
         double deltaX = next.getX() - x; //Erro do X
         double l, r;
         double k = 0.75;
-       // x=coordsAntigas.getLast().getX()+Math.cos(compass);
-       // y=coordsAntigas.getLast().getY()+Math.cos(compass);
+       
         if(Eixo()){ // ele esta virado na horizontal
             l =0.1 - k * deltaY * nivel(); //nivel corresponde a ser + ou - no eixo
             r =0.1 - k * -deltaY * nivel(); // Valor maximo de velocidade menos 
@@ -438,9 +406,7 @@ public class jClientC4 {
             l =0.1 - k * -deltaX * nivel(); //nivel corresponde a ser + ou - no eixo
             r =0.1 - k * deltaX * nivel(); //
         }
-        updateAll(l,r);
         cif.DriveMotors(l, r);
-       
     }
    
 
@@ -516,18 +482,16 @@ public class jClientC4 {
                 addToMap(coordDir(),"-");
         }else{
            /* if(ground>=0){
-                String auxValFin =  Integer.toString(ground);
                 //vetor vaux = new vetor(objetivos[ground].getX(),objetivos[ground].getY());
                 //int aux = Fcont(vaux);
-                //System.out.println("ENTREI" + auxValFin);
+                System.out.println("ENTREI" + Integer.toString(ground));
                 
-                addToMap(coord2Dir(), auxValFin);
+                addToMap(coord2Dir(), "A");
             }else{
                 System.out.println("COISO");*/
                 addToMap(coord2Dir(), "X");
                 
           //  }
-
            addToMap(coordDir(), "X");
             pd.setXY(coord2Dir());
             if(!AntContem(pd)){
@@ -609,9 +573,8 @@ public class jClientC4 {
             }
         }
         // quando visitar tudo ou se o clock estiver quase acabar
-        if(visitaveis.isEmpty() || cif.GetTime()> 4990){
-            endS=true;
-            } 
+        if(visitaveis.isEmpty() || cif.GetTime()> 4990){endS=true;} 
+
 //--------------------- calcular a posicao seguinte--------------------------------
         else{        
             if(localViz.size()==0){ 
@@ -633,7 +596,6 @@ public class jClientC4 {
         //System.out.println("Compass_goal antes do ArrendAngulo: "+ compass_goal);
         System.out.println("Mapping decode next x= "+next.getX()+" y= "+next.getY()+" compass_goal= "+compass_goal + " compass= " + compass);          
     }
-        
 
 
     public LinkedList<vetor> vizinhos(){
@@ -933,7 +895,7 @@ public class jClientC4 {
     //VARIAVEIS
 
     private String robName;
-    private double irSensor0, irSensor1, irSensor2, irSensor3, compass, compass_goal,compassLast, x, y, x0,y0,xlast,ylast, outlLast, outrLast;
+    private double irSensor0, irSensor1, irSensor2, irSensor3, compass, compass_goal, x, y, x0,y0;
     //sensores, bussola, bussola para o objetivo, coordenadas, coordenadas iniciais
     // compass_goal para onde ele vai ter de rodar
     private beaconMeasure beacon;
