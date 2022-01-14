@@ -472,7 +472,9 @@ public class jClientC4 {
         if(ground>=0){ 
             System.out.println("alvo: "+ground);
             vetor aux = new vetor(x,y);
-            objetivos[ground] = aux;            
+            objetivos[ground] = aux; 
+            String auxValFin =  Integer.toString(ground); 
+            addToMap(aux,auxValFin);           
         }
 
         if(ParedeDireita()){
@@ -746,7 +748,9 @@ public class jClientC4 {
     public boolean onMap(vetor v) {  //Verificar se as coordenadas dadas já estão preenchidas
         int col = (int) (v.getX())+28;
         int lin = 14 - (int) (v.getY());
-        if(coords[lin][col].equals("|") || coords[lin][col].equals("X") || coords[lin][col].equals("-") || coords[lin][col].equals("I")){
+        //boolean isNumeric =  coords[lin][col].matches("[+-]?\\d*(\\.\\d+)?");
+        boolean isNumeric=true;
+        if(isNumeric &&(coords[lin][col].equals("|") || coords[lin][col].equals("X") || coords[lin][col].equals("-") || coords[lin][col].equals("I"))){
             return true;
         } 
         return false;

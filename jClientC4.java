@@ -23,7 +23,17 @@
     Objetivos a atingir:
     - adicionar funçoes do X, Y, Z
 
-    
+relatorio: 
+
+-contexto do problema (qual o desafio) nas nossas palavras, apresentar a solucao para qualquer pessoa perceber
+
+    o problema que temos e este e tentamos fazer isto e aquilo....
+    que solucao escolhemos? vantagens e desvantagens
+    apresentar resultados(indicadores para medir o desempenho 
+    (colisoes, n medio que tem uma colisao, percentagem do mapa que imprimiu corretamente))...mostra os prints dos stores??? e os nossos resultados prints do mapa.txt e do vetor
+    introducao, metodologia,resultados, discusao (bom, mau, vale a pena nao vale a pena), conclusao e bibliografia
+
+quando terminar o projeto o rato tem que estar na posicao inicial, so depois fazer o finish...
 */
 
 import java.beans.PersistenceDelegate;
@@ -134,7 +144,7 @@ public class jClientC4 {
 
     ciberIF cif;
     Map map;
-    enum State {GA, RL, RR, INV, END}
+    enum State {GA, RL, RR, INV, WAIT, END}
 
     public static void main(String[] args) throws IOException{
 
@@ -286,6 +296,7 @@ public class jClientC4 {
                     if(targetReached()){
                         if(caminho.isEmpty()) mappingDecode();
                         else runCaminho();
+                       
                         cif.DriveMotors(0.0,0.0);
                     }
                     else{
@@ -297,6 +308,7 @@ public class jClientC4 {
                     if(targetReached()){
                         if(caminho.isEmpty()) mappingDecode();
                         else runCaminho();
+                        
                         cif.DriveMotors(0.0,0.0);
                     }
                     else{
@@ -308,6 +320,7 @@ public class jClientC4 {
                     if(targetReached()){ 
                         if(caminho.isEmpty()) mappingDecode();
                         else runCaminho();
+                        
                         cif.DriveMotors(0.0,0.0);
                     }
                     else{
@@ -317,6 +330,10 @@ public class jClientC4 {
 
                 case INV:
                     goInv(); 
+                    break;
+
+                case WAIT:
+                    cif.DriveMotors(0.0,0.0);
                     break;
 
                 case END:
@@ -335,60 +352,67 @@ public class jClientC4 {
     }
 
     public State Estados() throws IOException{
-        if(init==true){
-            init=false;
-            return State.GA;
-        }
-        if(endS==true){
-            endS=false;        
-            return State.END;
-        }
-        if(compass_goal == -90){
-            if(compass_goal-compass>-15 && compass_goal-compass<=15) return State.GA;
-            if(compass>-90 && compass<90) return State.RR;
-            else return State.RL;
-        }
-        else if(compass_goal == 180){
-            if(Math.abs(Math.abs(compass)-Math.abs(compass_goal))<=15) return State.GA;
-            if(compass<0) return State.RR;
-            else return State.RL;
-        }
-        else if(compass_goal == 90){
-            if(compass_goal-compass>-15 && compass_goal-compass<=15) return State.GA;
-            if(compass<90 && compass>-90) return State.RL;
-            else return State.RR;
+        if(cif.GetStartButton()){
+            if(init==true){
+                init=false;
+                return State.GA;
+            }
+            if(endS==true){
+                endS=false;        
+                return State.END;
+            }
+            if(compass_goal == -90){
+                if(compass_goal-compass>-15 && compass_goal-compass<=15) return State.GA;
+                if(compass>-90 && compass<90) return State.RR;
+                else return State.RL;
+            }
+            else if(compass_goal == 180){
+                if(Math.abs(Math.abs(compass)-Math.abs(compass_goal))<=15) return State.GA;
+                if(compass<0) return State.RR;
+                else return State.RL;
+            }
+            else if(compass_goal == 90){
+                if(compass_goal-compass>-15 && compass_goal-compass<=15) return State.GA;
+                if(compass<90 && compass>-90) return State.RL;
+                else return State.RR;
 
+            }
+            else if(compass_goal == 0){
+                if(compass_goal-compass>-15 && compass_goal-compass<=15) return State.GA;
+                if(compass<0) return State.RL;
+                else return State.RR; 
+            }
+            else return State.GA;
         }
-        else if(compass_goal == 0){
-            if(compass_goal-compass>-15 && compass_goal-compass<=15) return State.GA;
-            if(compass<0) return State.RL;
-            else return State.RR; 
-        }
-        else return State.GA;
+        return State.WAIT;
     }
     
     public void updateAll(double l, double r){ //update the values after a movement
-        System.out.println(" XLast=" + xlast + " YLast=" + ylast + " outRLast: " + outrLast +" outLLast: " + outlLast + " compassLast: "+compassLast);
+       // System.out.println(" XLast=" + xlast + " YLast=" + ylast + " outRLast: " + outrLast +" outLLast: " + outlLast + " compassLast: "+compassLast);
         double outr = (r+outrLast)/2;
         double outl = (l+outlLast)/2;
         double lin = (outr+outl)/2;
-        x = xlast+lin*Math.cos(compassLast); 
-        y = ylast+lin*Math.sin(compassLast);
+        x = xlast+lin*Math.cos(Math.toRadians(compassLast)); 
+        y = ylast+lin*Math.sin(Math.toRadians(compassLast));
         outrLast = outr;
         outlLast = outl;
         ylast=y;
         xlast=x;
         compassLast=compass;
-        System.out.println( "lin: " + lin+ " outR: " + outr + " outL " + outl +" X=" + x + " Y=" + y + " compass " + compass);
+        //System.out.println( "lin: " + lin+ " outR: " + outr + " outL " + outl +" X=" + x + " Y=" + y + " compass " + compass);
+       // System.out.println(" X=" + x + " Y=" + y + " compass " + compass);
     }
 
     public boolean targetReached(){ //chegou ao objetivo?
+   
         if (Math.abs(x-next.getX())<=0.15 && Math.abs(y-next.getY())<=0.15){
+            System.out.println("Estou no meio");
             return true;
         }else{
             return false;
         }
     }
+    
 
     public void goLeft(){
         double deltaC = Math.abs(Math.abs(compass_goal)-Math.abs(compass));
@@ -397,9 +421,9 @@ public class jClientC4 {
         double r = rot;
       //  x=coordsAntigas.getLast().getX()+Math.cos(compass);
        // y=coordsAntigas.getLast().getY()+Math.cos(compass);
-        updateAll(l,r);
-        cif.DriveMotors(l, r);
         
+        cif.DriveMotors(l, r);
+        updateAll(l,r);
 
        // double lin = /2;
         
@@ -412,14 +436,15 @@ public class jClientC4 {
         double r = -rot;
        // x=coordsAntigas.getLast().getX()+Math.cos(compass);
        // y=coordsAntigas.getLast().getY()+Math.cos(compass);
-        updateAll(l,r);
-        cif.DriveMotors(l, r);
        
+        cif.DriveMotors(l, r);
+        updateAll(l,r);
     }
 
     public void goInv(){
-        updateAll(0.15,-0.15);
         cif.DriveMotors(0.15,-0.15);
+        updateAll(0.15,-0.15);
+        
        
     }
 
@@ -438,9 +463,9 @@ public class jClientC4 {
             l =0.1 - k * -deltaX * nivel(); //nivel corresponde a ser + ou - no eixo
             r =0.1 - k * deltaX * nivel(); //
         }
-        updateAll(l,r);
+        
         cif.DriveMotors(l, r);
-       
+       updateAll(l,r);
     }
    
 
@@ -692,6 +717,8 @@ public class jClientC4 {
         return -1;
     }
 
+    //caminho deve ser o mais pequeno como o rodrigo disse se tens 3 beacons tens de ver qual o melhor
+    // entre 0 1 2 ou 0 2 1 ou 1 0 2 ... tens de ver qual o caminho mais curto a partir dai
     public void writeCaminho() throws IOException{ //Escreve o caminho no file      
         LinkedList<vetor> tmp = new LinkedList<vetor>();
         tmp = addCaminho(); 
