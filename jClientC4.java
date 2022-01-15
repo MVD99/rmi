@@ -392,17 +392,126 @@ public class jClientC4 {
         double outr = (r+outrLast)/2;
         double outl = (l+outlLast)/2;
         double lin = (outr+outl)/2;
-        x = xlast+lin*Math.cos(Math.toRadians(compassLast)); 
-        y = ylast+lin*Math.sin(Math.toRadians(compassLast));
+        xcalculado = xlast+lin*Math.cos(Math.toRadians(compassLast)); 
+        ycalculado = ylast+lin*Math.sin(Math.toRadians(compassLast));
         outrLast = outr;
         outlLast = outl;
-        ylast=y;
-        xlast=x;
+        /*
+        ylast=ycalculado;
+        xlast=xcalculado;
+        */ 
         compassLast=compass;
         //System.out.println( "lin: " + lin+ " outR: " + outr + " outL " + outl +" X=" + x + " Y=" + y + " compass " + compass);
        // System.out.println(" X=" + x + " Y=" + y + " compass " + compass);
+  
+        /*
+       1-------------
+        |           |
+        |           |
+       0|        X->| 
+        |           |
+        |           |
+       -1     0     1*/
+        double xsensor, ysensor;// xdir,xesq,ydir,yesq;
+       // xsensor=trunc(xcalculado);
+        //ysensor=trunc(ycalculado);
+       
+        if(Eixo()){ //se tiver na horizontal
+            xsensor = valueX(xcalculado);
+        }
+
+
+        if (!Eixo() && ycalculado>=0){ //True if vertical e no y positivo
+            if(ParedeTras() && ParedeFrente()){
+                double aux = 1/irSensor3;
+                ysensor=aux-trunc(aux); //parte fracionaria  da distancia
+            }
+            else if(ParedeFrente() && !ParedeTras()){
+                double aux = 1/irSensor0; //parte fracionaria  da distancia 
+                ysensor = aux-trunc(aux);
+            }else if(!ParedeFrente() && ParedeTras()){
+                double aux = 1/irSensor3;
+                ysensor=aux-trunc(aux); //parte fracionaria da distancia 
+                //double aux = 1+1/irSensor0 - 1/irSensor3;
+            }
+            
+        }
+        //y negativo
+
+        xsensor=xsensor+trunc(xcalculado); //Sum the integer part of the calculated X
+        ysensor=ysensor+trunc(ycalculado);
+
+        if(!(ParedeFrente() || ParedeTras())) x=xcalculado;
+        x=(xcalculado+xsensor)/2;
+        y=(ycalculado+ysensor)/2;
+        ylast=y;
+        xlast=x;
     }
 
+
+    public double valueX(double xcalculado){
+        double xsensor;
+        double aux;
+        if(xcalculado>=0){
+            if(ParedeTras() && ParedeFrente()){
+                aux = 1/irSensor3;
+                xsensor=aux-trunc(aux); //parte fracionaria  da distancia
+            }else if(ParedeFrente() && !ParedeTras()){
+                aux = 1/irSensor0; //parte fracionaria  da distancia 
+                xsensor = aux-trunc(aux);
+            }else if(!ParedeFrente() && ParedeTras()){
+                aux = 1/irSensor3;
+                xsensor=aux-trunc(aux); //parte fracionaria da distancia 
+                //double aux = 1+1/irSensor0 - 1/irSensor3;
+            }
+            else{
+                xsensor=0;
+            }
+        }
+        else{
+            if(ParedeTras() && ParedeFrente()){
+                aux = 1/irSensor0;
+                xsensor=aux-trunc(aux); //parte fracionaria  da distancia
+            }else if(ParedeFrente() && !ParedeTras()){
+                aux = 1/irSensor0; //parte fracionaria  da distancia 
+                xsensor = aux-trunc(aux);
+            }else if(!ParedeFrente() && ParedeTras()){
+                aux = 1/irSensor3;
+                xsensor=1-(aux-trunc(aux)); //parte fracionaria da distancia 
+                //double aux = 1+1/irSensor0 - 1/irSensor3;
+            }
+            else{
+                xsensor=0;
+            }   
+        }
+        return xsensor;
+    }
+
+    
+     public double valueY(double ycalculado){ //ver esta
+        double ysensor;
+        double aux;
+        if(ycalculado>=0){
+            if(ParedeTras() && ParedeFrente()){
+                aux = 1/irSensor3;
+                ysensor=aux-trunc(aux); //parte fracionaria  da distancia
+            }else if(ParedeFrente() && !ParedeTras()){
+                aux = 1/irSensor0; //parte fracionaria  da distancia 
+                ysensor = aux-trunc(aux);
+            }else if(!ParedeFrente() && ParedeTras()){
+                aux = 1/irSensor3;
+                ysensor=aux-trunc(aux); //parte fracionaria da distancia 
+                //double aux = 1+1/irSensor0 - 1/irSensor3;
+            }
+            else{
+                ysensor=0;
+            }
+        }
+        else{
+            //negativos
+        }
+        return xsensor;
+    }
     public boolean targetReached(){ //chegou ao objetivo?
    
         if (Math.abs(x-next.getX())<=0.15 && Math.abs(y-next.getY())<=0.15){
@@ -853,19 +962,19 @@ public class jClientC4 {
     //AUXILIARES
     //ver se existe parede nas 4 direcoes
     public boolean ParedeFrente(){
-        if(irSensor0>=1.3) return true;
+        if(irSensor0>=1.5) return true;
         return false;
     }
     public boolean ParedeTras(){
-        if(irSensor3>=1.3) return true;
+        if(irSensor3>=1.5) return true;
         return false;
     }
     public boolean ParedeDireita(){
-        if(irSensor2>=1.3) return true;
+        if(irSensor2>=1.5) return true;
         return false;
     }
     public boolean ParedeEsquerda(){
-        if(irSensor1>=1.3) return true;
+        if(irSensor1>=1.5) return true;
         return false;
     }
 
