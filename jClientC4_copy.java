@@ -31,7 +31,7 @@ import java.beans.PersistenceDelegate;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-
+//import java.NumberUtils.*;
 import org.xml.sax.*;
 import org.xml.sax.helpers.DefaultHandler;
 import javax.xml.parsers.SAXParserFactory;
@@ -474,7 +474,7 @@ public class jClientC4 {
             vetor aux = new vetor(x,y);
             objetivos[ground] = aux; 
             String auxValFin =  Integer.toString(ground); 
-            addToMap(aux,auxValFin);           
+            addToMapBeacon(aux,auxValFin);           
         }
 
         if(ParedeDireita()){
@@ -624,7 +624,15 @@ public class jClientC4 {
     public void addToMap(vetor v, String a) throws IOException { //escrever no coords a String certa 
         int col = (int) (v.getX())+28;
         int lin = 14 - (int)(v.getY());
-        if(!onMap(v))coords[lin][col]= a;
+        if (!onMap(v)){
+            coords[lin][col]= a;
+        }
+    }
+
+    public void addToMapBeacon(vetor v, String a) throws IOException { //escrever no coords a String certa 
+        int col = (int) (v.getX())+28;
+        int lin = 14 - (int)(v.getY());
+        coords[lin][col]= a;
     }
 
     public void writeMap() throws IOException{ //Escreve o mapa no file
@@ -749,8 +757,7 @@ public class jClientC4 {
         int col = (int) (v.getX())+28;
         int lin = 14 - (int) (v.getY());
         //boolean isNumeric =  coords[lin][col].matches("[+-]?\\d*(\\.\\d+)?");
-        boolean isNumeric=true;
-        if(isNumeric &&(coords[lin][col].equals("|") || coords[lin][col].equals("X") || coords[lin][col].equals("-") || coords[lin][col].equals("I"))){
+        if((coords[lin][col].equals("|") || coords[lin][col].equals("X") || coords[lin][col].equals("-") || coords[lin][col].equals("I") || isNumeric(coords[lin][col]))){
             return true;
         } 
         return false;
@@ -895,6 +902,15 @@ public class jClientC4 {
         }
         return false;
     }
+
+public static boolean isNumeric(String str)
+{
+    for (char c : str.toCharArray())
+    {
+        if (!Character.isDigit(c)) return false;
+    }
+    return true;
+}
 
     //VARIAVEIS
 

@@ -40,7 +40,7 @@ import java.beans.PersistenceDelegate;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-
+import java.lang.Math.*;
 import org.xml.sax.*;
 import org.xml.sax.helpers.DefaultHandler;
 import javax.xml.parsers.SAXParserFactory;
@@ -392,8 +392,8 @@ public class jClientC4 {
         double outr = (r+outrLast)/2;
         double outl = (l+outlLast)/2;
         double lin = (outr+outl)/2;
-        xcalculado = xlast+lin*Math.cos(Math.toRadians(compassLast)); 
-        ycalculado = ylast+lin*Math.sin(Math.toRadians(compassLast));
+        double xcalculado = xlast+lin*Math.cos(Math.toRadians(compassLast)); 
+        double ycalculado = ylast+lin*Math.sin(Math.toRadians(compassLast));
         outrLast = outr;
         outlLast = outl;
         /*
@@ -413,9 +413,9 @@ public class jClientC4 {
         |           |
        -1     0     1*/
         double xsensor, ysensor;// xdir,xesq,ydir,yesq;
-       // xsensor=trunc(xcalculado);
-        //ysensor=trunc(ycalculado);
-       
+       // xsensor=Math.trunc(xcalculado);
+        //ysensor=Math.trunc(ycalculado);
+       /*
         if(Eixo()){ //se tiver na horizontal
             xsensor = valueX(xcalculado);
         }
@@ -424,44 +424,45 @@ public class jClientC4 {
         if (!Eixo() && ycalculado>=0){ //True if vertical e no y positivo
             if(ParedeTras() && ParedeFrente()){
                 double aux = 1/irSensor3;
-                ysensor=aux-trunc(aux); //parte fracionaria  da distancia
+                ysensor=aux-Math.trunc(aux); //parte fracionaria  da distancia
             }
             else if(ParedeFrente() && !ParedeTras()){
                 double aux = 1/irSensor0; //parte fracionaria  da distancia 
-                ysensor = aux-trunc(aux);
+                ysensor = aux-Math.trunc(aux);
             }else if(!ParedeFrente() && ParedeTras()){
                 double aux = 1/irSensor3;
-                ysensor=aux-trunc(aux); //parte fracionaria da distancia 
+                ysensor=aux-Math.trunc(aux); //parte fracionaria da distancia 
                 //double aux = 1+1/irSensor0 - 1/irSensor3;
             }
             
         }
         //y negativo
 
-        xsensor=xsensor+trunc(xcalculado); //Sum the integer part of the calculated X
-        ysensor=ysensor+trunc(ycalculado);
+        xsensor=xsensor+Math.trunc(xcalculado); //Sum the integer part of the calculated X
+        ysensor=ysensor+Math.trunc(ycalculado);
 
         if(!(ParedeFrente() || ParedeTras())) x=xcalculado;
         x=(xcalculado+xsensor)/2;
         y=(ycalculado+ysensor)/2;
         ylast=y;
         xlast=x;
+        */
     }
 
-
+/*
     public double valueX(double xcalculado){
         double xsensor;
         double aux;
         if(xcalculado>=0){
             if(ParedeTras() && ParedeFrente()){
                 aux = 1/irSensor3;
-                xsensor=aux-trunc(aux); //parte fracionaria  da distancia
+                xsensor=aux-Math.trunc(aux); //parte fracionaria  da distancia
             }else if(ParedeFrente() && !ParedeTras()){
                 aux = 1/irSensor0; //parte fracionaria  da distancia 
-                xsensor = aux-trunc(aux);
+                xsensor = aux-Math.trunc(aux);
             }else if(!ParedeFrente() && ParedeTras()){
                 aux = 1/irSensor3;
-                xsensor=aux-trunc(aux); //parte fracionaria da distancia 
+                xsensor=aux-Math.trunc(aux); //parte fracionaria da distancia 
                 //double aux = 1+1/irSensor0 - 1/irSensor3;
             }
             else{
@@ -471,13 +472,13 @@ public class jClientC4 {
         else{
             if(ParedeTras() && ParedeFrente()){
                 aux = 1/irSensor0;
-                xsensor=aux-trunc(aux); //parte fracionaria  da distancia
+                xsensor=aux-Math.trunc(aux); //parte fracionaria  da distancia
             }else if(ParedeFrente() && !ParedeTras()){
                 aux = 1/irSensor0; //parte fracionaria  da distancia 
-                xsensor = aux-trunc(aux);
+                xsensor = aux-Math.trunc(aux);
             }else if(!ParedeFrente() && ParedeTras()){
                 aux = 1/irSensor3;
-                xsensor=1-(aux-trunc(aux)); //parte fracionaria da distancia 
+                xsensor=1-(aux-Math.trunc(aux)); //parte fracionaria da distancia 
                 //double aux = 1+1/irSensor0 - 1/irSensor3;
             }
             else{
@@ -494,13 +495,13 @@ public class jClientC4 {
         if(ycalculado>=0){
             if(ParedeTras() && ParedeFrente()){
                 aux = 1/irSensor3;
-                ysensor=aux-trunc(aux); //parte fracionaria  da distancia
+                ysensor=aux-Math.trunc(aux); //parte fracionaria  da distancia
             }else if(ParedeFrente() && !ParedeTras()){
                 aux = 1/irSensor0; //parte fracionaria  da distancia 
-                ysensor = aux-trunc(aux);
+                ysensor = aux-Math.trunc(aux);
             }else if(!ParedeFrente() && ParedeTras()){
                 aux = 1/irSensor3;
-                ysensor=aux-trunc(aux); //parte fracionaria da distancia 
+                ysensor=aux-Math.trunc(aux); //parte fracionaria da distancia 
                 //double aux = 1+1/irSensor0 - 1/irSensor3;
             }
             else{
@@ -512,6 +513,8 @@ public class jClientC4 {
         }
         return xsensor;
     }
+*/
+    
     public boolean targetReached(){ //chegou ao objetivo?
    
         if (Math.abs(x-next.getX())<=0.15 && Math.abs(y-next.getY())<=0.15){
@@ -640,7 +643,9 @@ public class jClientC4 {
         if(ground>=0){ 
             System.out.println("alvo: "+ground);
             vetor aux = new vetor(x,y);
-            objetivos[ground] = aux;            
+            objetivos[ground] = aux; 
+            String auxValFin =  Integer.toString(ground); 
+            addToMapBeacon(aux,auxValFin);            
         }
 
         if(ParedeDireita()){
@@ -797,6 +802,12 @@ public class jClientC4 {
         if(!onMap(v))coords[lin][col]= a;
     }
 
+    public void addToMapBeacon(vetor v, String a) throws IOException { //escrever no coords a String certa 
+        int col = (int) (v.getX())+28;
+        int lin = 14 - (int)(v.getY());
+        coords[lin][col]= a;
+    }
+
     public void writeMap() throws IOException{ //Escreve o mapa no file
         File fileMap = new File("mapa.txt");
         fileMap.createNewFile();
@@ -920,7 +931,7 @@ public class jClientC4 {
     public boolean onMap(vetor v) {  //Verificar se as coordenadas dadas já estão preenchidas
         int col = (int) (v.getX())+28;
         int lin = 14 - (int) (v.getY());
-        if(coords[lin][col].equals("|") || coords[lin][col].equals("X") || coords[lin][col].equals("-") || coords[lin][col].equals("I")){
+        if((coords[lin][col].equals("|") || coords[lin][col].equals("X") || coords[lin][col].equals("-") || coords[lin][col].equals("I") || isNumeric(coords[lin][col]))){
             return true;
         } 
         return false;
@@ -1064,6 +1075,15 @@ public class jClientC4 {
             if(coordsAntigas.get(i).equals(v)) return true;
         }
         return false;
+    }
+    
+    public static boolean isNumeric(String str)
+    {
+        for (char c : str.toCharArray())
+        {
+            if (!Character.isDigit(c)) return false;
+        }
+        return true;
     }
 
     //VARIAVEIS
