@@ -388,7 +388,6 @@ public class jClientC4 {
     }
     
     public void updateAll(double l, double r){ //update the values after a movement
-       // System.out.println(" XLast=" + xlast + " YLast=" + ylast + " outRLast: " + outrLast +" outLLast: " + outlLast + " compassLast: "+compassLast);
         double outr = (r+outrLast)/2;
         double outl = (l+outlLast)/2;
         double lin = (outr+outl)/2;
@@ -396,124 +395,198 @@ public class jClientC4 {
         double ycalculado = ylast+lin*Math.sin(Math.toRadians(compassLast));
         outrLast = outr;
         outlLast = outl;
-        /*
-        ylast=ycalculado;
-        xlast=xcalculado;
-        */ 
         compassLast=compass;
-        //System.out.println( "lin: " + lin+ " outR: " + outr + " outL " + outl +" X=" + x + " Y=" + y + " compass " + compass);
-       // System.out.println(" X=" + x + " Y=" + y + " compass " + compass);
   
-        /*
-       1-------------
-        |           |
-        |           |
-       0|        X->| 
-        |           |
-        |           |
-       -1     0     1*/
-        double xsensor, ysensor;// xdir,xesq,ydir,yesq;
-       // xsensor=Math.trunc(xcalculado);
-        //ysensor=Math.trunc(ycalculado);
-       /*
+        double xsensor = 0, ysensor = 0;// xdir,xesq,ydir,yesq;
         if(Eixo()){ //se tiver na horizontal
             xsensor = valueX(xcalculado);
+            ysensor = valueYSides(ycalculado); //ajusta o y com os sensores de lado
+        }else if(!Eixo()){ //se tiver na vertical
+            xsensor=valueXSides(xcalculado); //ajusta o x com os sensores de lado
+            ysensor = valueY(ycalculado);
         }
-
-
-        if (!Eixo() && ycalculado>=0){ //True if vertical e no y positivo
-            if(ParedeTras() && ParedeFrente()){
-                double aux = 1/irSensor3;
-                ysensor=aux-Math.trunc(aux); //parte fracionaria  da distancia
-            }
-            else if(ParedeFrente() && !ParedeTras()){
-                double aux = 1/irSensor0; //parte fracionaria  da distancia 
-                ysensor = aux-Math.trunc(aux);
-            }else if(!ParedeFrente() && ParedeTras()){
-                double aux = 1/irSensor3;
-                ysensor=aux-Math.trunc(aux); //parte fracionaria da distancia 
-                //double aux = 1+1/irSensor0 - 1/irSensor3;
-            }
-            
-        }
-        //y negativo
-
-        xsensor=xsensor+Math.trunc(xcalculado); //Sum the integer part of the calculated X
-        ysensor=ysensor+Math.trunc(ycalculado);
-
-        if(!(ParedeFrente() || ParedeTras())) x=xcalculado;
         x=(xcalculado+xsensor)/2;
         y=(ycalculado+ysensor)/2;
         ylast=y;
         xlast=x;
-        */
+        
+        System.out.println("xsensor-> " + xsensor + " ysensor-> " + ysensor+ " x -> " +x + " y -> "+y) ;
+        
     }
 
-/*
+    public double parteFracionada(double value){
+        //String parteFracionada  = decimalFormatter.format(value).substring(decimalFormatter.format(value).toString().indexOf(","));
+        int iPart = (int) value;
+        double fPart = value - iPart;
+        if(fPart<0){
+            fPart = - fPart;
+        }
+        return fPart;
+       
+    }
+    public int parteInteira(double value){
+        int iPart = (int) value;
+        
+        return iPart;
+    }
+
     public double valueX(double xcalculado){
         double xsensor;
         double aux;
-        if(xcalculado>=0){
-            if(ParedeTras() && ParedeFrente()){
-                aux = 1/irSensor3;
-                xsensor=aux-Math.trunc(aux); //parte fracionaria  da distancia
-            }else if(ParedeFrente() && !ParedeTras()){
-                aux = 1/irSensor0; //parte fracionaria  da distancia 
-                xsensor = aux-Math.trunc(aux);
-            }else if(!ParedeFrente() && ParedeTras()){
-                aux = 1/irSensor3;
-                xsensor=aux-Math.trunc(aux); //parte fracionaria da distancia 
-                //double aux = 1+1/irSensor0 - 1/irSensor3;
-            }
-            else{
-                xsensor=0;
-            }
+        double total;
+        if(!ParedeFrente() && !ParedeTras()){ 
+           // xsensor=xcalculado;
+            return xcalculado;
         }
-        else{
-            if(ParedeTras() && ParedeFrente()){
-                aux = 1/irSensor0;
-                xsensor=aux-Math.trunc(aux); //parte fracionaria  da distancia
-            }else if(ParedeFrente() && !ParedeTras()){
-                aux = 1/irSensor0; //parte fracionaria  da distancia 
-                xsensor = aux-Math.trunc(aux);
-            }else if(!ParedeFrente() && ParedeTras()){
-                aux = 1/irSensor3;
-                xsensor=1-(aux-Math.trunc(aux)); //parte fracionaria da distancia 
-                //double aux = 1+1/irSensor0 - 1/irSensor3;
-            }
-            else{
-                xsensor=0;
-            }   
+
+        if(ParedeTras() && ParedeFrente()){
+            double tmp = coordParedeFrenteHorizontal(xcalculado);
+            //parte fracionaria  da distancia 
+            aux = tmp - parteFracionada(1/irSensor0); //valor calculado pelo sensor da frente
+            double aux2 = parteFracionada(1/irSensor3) + (xcalculado - parteFracionada(xcalculado)); //valor calculado pelo sensor de tras
+            xsensor= (aux+aux2)/2; //média do sensor da frente e de tras
+            
+        }else if(ParedeFrente() && !ParedeTras()){
+            double tmp = coordParedeFrenteHorizontal(xcalculado);
+            aux = 1/irSensor0; //parte fracionaria  da distancia 
+            xsensor =tmp - parteFracionada(aux);
+        }else if(!ParedeFrente() && ParedeTras()){
+            aux = 1/irSensor3;
+            xsensor = parteFracionada(aux) + (xcalculado - parteFracionada(xcalculado));
+        }else{
+            xsensor=xcalculado;
         }
+
+        //valor do x obtido pelos sensores e a parte fracionada dos sensores + a parte inteira do x calculado
+       // total = xsensor + (xcalculado - parteFracionada(xcalculado));
+        
         return xsensor;
     }
+
+    public double valueXSides(double xcalculado){
+        double xsensor;
+        double aux;
+        double total;
+        if(!ParedeEsquerda() && !ParedeDireita()){ 
+           // xsensor=xcalculado;
+            return xcalculado;
+        }
+
+        if(ParedeEsquerda() && ParedeDireita()){
+            double tmp = coordParedeFrenteHorizontal(xcalculado);
+            //parte fracionaria  da distancia 
+            aux = tmp - parteFracionada(1/irSensor2); //valor calculado pelo sensor da frente
+            double aux2 = parteFracionada(1/irSensor1) + (xcalculado - parteFracionada(xcalculado)); //valor calculado pelo sensor de tras
+            xsensor= (aux+aux2)/2; //média do sensor da frente e de tras
+            
+        }else if(ParedeDireita() && !ParedeEsquerda()){
+            double tmp = coordParedeFrenteHorizontal(xcalculado);
+            aux = 1/irSensor2; //parte fracionaria  da distancia 
+            xsensor =tmp - parteFracionada(aux);
+        }else if(!ParedeFrente() && ParedeTras()){
+            aux = 1/irSensor1;
+            xsensor = parteFracionada(aux) + (xcalculado - parteFracionada(xcalculado));
+        }else{
+            xsensor=xcalculado;
+        }
+
+        //valor do x obtido pelos sensores e a parte fracionada dos sensores + a parte inteira do x calculado
+       // total = xsensor + (xcalculado - parteFracionada(xcalculado));
+        
+        return xsensor;
+    }
+
+    
+    public double valueYSides (double ycalculado){
+        double ysensor;
+        double aux;
+        double total;
+        if(!(ParedeEsquerda() || ParedeDireita())){ 
+           // xsensor=xcalculado;
+            return ycalculado;
+        }
+
+        if(ParedeEsquerda() && ParedeDireita()){
+            double tmp = coordParedeFrenteVertical(ycalculado); 
+            //parte fracionaria  da distancia 
+            aux = tmp - parteFracionada(1/irSensor2); //valor calculado pelo sensor da frente
+            double aux2 = parteFracionada(1/irSensor1) + (ycalculado - parteFracionada(ycalculado)); //valor calculado pelo sensor de tras
+            ysensor= (aux+aux2)/2; //média do sensor da frente e de tras
+            
+        }else if(ParedeDireita() && !ParedeEsquerda()){
+            double tmp = coordParedeFrenteVertical(ycalculado);
+            aux = 1/irSensor2; //parte fracionaria  da distancia 
+            ysensor =tmp - parteFracionada(aux);
+        }else if(!ParedeDireita() && ParedeEsquerda()){
+            aux = 1/irSensor1;
+            ysensor = parteFracionada(aux) + (ycalculado - parteFracionada(ycalculado));
+        }else{
+            ysensor=ycalculado;
+        }
+
+        //valor do x obtido pelos sensores e a parte fracionada dos sensores + a parte inteira do x calculado
+       // total = xsensor + (xcalculado - parteFracionada(xcalculado));
+        return ysensor;
+    }
+
 
     
      public double valueY(double ycalculado){ //ver esta
         double ysensor;
         double aux;
-        if(ycalculado>=0){
-            if(ParedeTras() && ParedeFrente()){
-                aux = 1/irSensor3;
-                ysensor=aux-Math.trunc(aux); //parte fracionaria  da distancia
-            }else if(ParedeFrente() && !ParedeTras()){
-                aux = 1/irSensor0; //parte fracionaria  da distancia 
-                ysensor = aux-Math.trunc(aux);
-            }else if(!ParedeFrente() && ParedeTras()){
-                aux = 1/irSensor3;
-                ysensor=aux-Math.trunc(aux); //parte fracionaria da distancia 
-                //double aux = 1+1/irSensor0 - 1/irSensor3;
-            }
-            else{
-                ysensor=0;
-            }
+        double total;
+        if(!(ParedeFrente() || ParedeTras())){ 
+           // xsensor=xcalculado;
+            return ycalculado;
         }
-        else{
-            //negativos
+
+        if(ParedeTras() && ParedeFrente()){
+            double tmp = coordParedeFrenteHorizontal(ycalculado);
+            //parte fracionaria  da distancia 
+            aux = tmp - parteFracionada(1/irSensor0); //valor calculado pelo sensor da frente
+            double aux2 = parteFracionada(1/irSensor3) + (ycalculado - parteFracionada(ycalculado)); //valor calculado pelo sensor de tras
+            ysensor= (aux+aux2)/2; //média do sensor da frente e de tras
+            
+        }else if(ParedeFrente() && !ParedeTras()){
+            double tmp = coordParedeFrenteHorizontal(ycalculado);
+            aux = 1/irSensor0; //parte fracionaria  da distancia 
+            ysensor =tmp - parteFracionada(aux);
+        }else if(!ParedeFrente() && ParedeTras()){
+            aux = 1/irSensor3;
+            ysensor = parteFracionada(aux) + (ycalculado - parteFracionada(ycalculado));
+        }else{
+            ysensor=ycalculado;
         }
-        return xsensor;
+
+        //valor do x obtido pelos sensores e a parte fracionada dos sensores + a parte inteira do x calculado
+       // total = xsensor + (xcalculado - parteFracionada(xcalculado));
+        
+        return ysensor;
     }
-*/
+
+    public double coordParedeFrenteHorizontal(double xcalculado){
+        int xcalculado2= (int) xcalculado;
+        if(xcalculado2%2==0){
+            if(nivel()==1) return (double) (xcalculado2+1);
+            else return (double) (xcalculado2-1);
+        }else{
+            if(nivel()==1) return (double) (xcalculado2+2);
+            else return (double) (xcalculado2-2);
+        }
+    }
+    
+    //parede de cima quando estamos a andar para a direita e a parede de baixo quando estamos a andar para a esquerda
+    public double coordParedeFrenteVertical(double ycalculado){
+        int ycalculado2= (int) ycalculado;
+        if(ycalculado2%2==0){
+            if(nivel()==1) return (double) (ycalculado2+2); 
+            else return (double) (ycalculado2-2);
+        }else{
+            if(nivel()==1) return (double) (ycalculado2+1);
+            else return (double) (ycalculado2-1);
+        }
+    }
+
     
     public boolean targetReached(){ //chegou ao objetivo?
    
@@ -533,7 +606,7 @@ public class jClientC4 {
         double r = rot;
       //  x=coordsAntigas.getLast().getX()+Math.cos(compass);
        // y=coordsAntigas.getLast().getY()+Math.cos(compass);
-        
+      //  System.out.println(" rodar para esquerda -> " + "l -> " + l + " r-> " + r);
         cif.DriveMotors(l, r);
         updateAll(l,r);
 
@@ -548,12 +621,14 @@ public class jClientC4 {
         double r = -rot;
        // x=coordsAntigas.getLast().getX()+Math.cos(compass);
        // y=coordsAntigas.getLast().getY()+Math.cos(compass);
-       
+      // System.out.println("rodar direita " + "l -> " + l + " r-> " + r);
         cif.DriveMotors(l, r);
         updateAll(l,r);
     }
 
     public void goInv(){
+       // System.out.println("inverter");
+        
         cif.DriveMotors(0.15,-0.15);
         updateAll(0.15,-0.15);
         
@@ -575,6 +650,7 @@ public class jClientC4 {
             l =0.1 - k * -deltaX * nivel(); //nivel corresponde a ser + ou - no eixo
             r =0.1 - k * deltaX * nivel(); //
         }
+        //System.out.println("Andar para frente -> " + "l -> " + l + " r-> " + r );
         
         cif.DriveMotors(l, r);
        updateAll(l,r);
