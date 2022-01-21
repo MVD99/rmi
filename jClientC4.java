@@ -397,25 +397,30 @@ public class jClientC4 {
         outlLast = outl;
         compassLast=compass;
   
-        double xsensor = 0, ysensor = 0;// xdir,xesq,ydir,yesq;
+        double xsensor = 0, ysensor = 0;
+        
         if(Eixo()){ //se tiver na horizontal
             xsensor = valueX(xcalculado);
-            ysensor = valueYSides(ycalculado); //ajusta o y com os sensores de lado
+            //ysensor = valueYSides(ycalculado); //ajusta o y com os sensores de lado
+            ysensor=ycalculado;
         }else if(!Eixo()){ //se tiver na vertical
-            xsensor=valueXSides(xcalculado); //ajusta o x com os sensores de lado
+            //xsensor =valueXSides(xcalculado); //ajusta o x com os sensores de lado
             ysensor = valueY(ycalculado);
+            xsensor = xcalculado;
         }
-        x=(xcalculado+xsensor)/2;
-        y=(ycalculado+ysensor)/2;
-        ylast=y;
+       
+        x=(xcalculado*0.7+xsensor*0.3);       
+        y=(ycalculado*0.7+ysensor*0.3);
+        //x = xcalculado;
+        //y=ycalculado;
+        System.out.println("xsensor -> " + xsensor + " xcalculado -> " + xcalculado + " media x -> " + x);
+        System.out.println("ysensor -> " + ysensor + " ycalculado -> " + ycalculado + " media y -> " + y);
         xlast=x;
-        
-        System.out.println("xsensor-> " + xsensor + " ysensor-> " + ysensor+ " x -> " +x + " y -> "+y) ;
-        
+        ylast=y;  
+         
     }
 
     public double parteFracionada(double value){
-        //String parteFracionada  = decimalFormatter.format(value).substring(decimalFormatter.format(value).toString().indexOf(","));
         int iPart = (int) value;
         double fPart = value - iPart;
         if(fPart<0){
@@ -432,26 +437,23 @@ public class jClientC4 {
 
     public double valueX(double xcalculado){
         double xsensor;
-        double aux;
-        double total;
         if(!ParedeFrente() && !ParedeTras()){ 
-           // xsensor=xcalculado;
             return xcalculado;
         }
 
         if(ParedeTras() && ParedeFrente()){
             double tmp = coordParedeFrenteHorizontal(xcalculado);
             //parte fracionaria  da distancia 
-            aux = tmp - parteFracionada(1/irSensor0); //valor calculado pelo sensor da frente
+            double aux = tmp - parteFracionada(1/irSensor0); //valor calculado pelo sensor da frente
             double aux2 = parteFracionada(1/irSensor3) + (xcalculado - parteFracionada(xcalculado)); //valor calculado pelo sensor de tras
             xsensor= (aux+aux2)/2; //média do sensor da frente e de tras
             
         }else if(ParedeFrente() && !ParedeTras()){
             double tmp = coordParedeFrenteHorizontal(xcalculado);
-            aux = 1/irSensor0; //parte fracionaria  da distancia 
+            double aux = 1/irSensor0; //parte fracionaria  da distancia 
             xsensor =tmp - parteFracionada(aux);
         }else if(!ParedeFrente() && ParedeTras()){
-            aux = 1/irSensor3;
+            double  aux = 1/irSensor3;
             xsensor = parteFracionada(aux) + (xcalculado - parteFracionada(xcalculado));
         }else{
             xsensor=xcalculado;
@@ -501,7 +503,7 @@ public class jClientC4 {
         double ysensor;
         double aux;
         double total;
-        if(!(ParedeEsquerda() || ParedeDireita())){ 
+        if(!ParedeEsquerda() && !ParedeDireita()){ 
            // xsensor=xcalculado;
             return ycalculado;
         }
@@ -525,30 +527,31 @@ public class jClientC4 {
         }
 
         //valor do x obtido pelos sensores e a parte fracionada dos sensores + a parte inteira do x calculado
-       // total = xsensor + (xcalculado - parteFracionada(xcalculado));
+        //total = xsensor + (xcalculado - parteFracionada(xcalculado));
+       
         return ysensor;
     }
 
 
     
-     public double valueY(double ycalculado){ //ver esta
+    public double valueY(double ycalculado){ //ver esta
         double ysensor;
         double aux;
         double total;
-        if(!(ParedeFrente() || ParedeTras())){ 
+        if(!ParedeFrente() && !ParedeTras()){ 
            // xsensor=xcalculado;
             return ycalculado;
         }
 
         if(ParedeTras() && ParedeFrente()){
-            double tmp = coordParedeFrenteHorizontal(ycalculado);
+            double tmp = coordParedeFrenteVertical(ycalculado);
             //parte fracionaria  da distancia 
             aux = tmp - parteFracionada(1/irSensor0); //valor calculado pelo sensor da frente
             double aux2 = parteFracionada(1/irSensor3) + (ycalculado - parteFracionada(ycalculado)); //valor calculado pelo sensor de tras
             ysensor= (aux+aux2)/2; //média do sensor da frente e de tras
             
         }else if(ParedeFrente() && !ParedeTras()){
-            double tmp = coordParedeFrenteHorizontal(ycalculado);
+            double tmp = coordParedeFrenteVertical(ycalculado);
             aux = 1/irSensor0; //parte fracionaria  da distancia 
             ysensor =tmp - parteFracionada(aux);
         }else if(!ParedeFrente() && ParedeTras()){
@@ -563,7 +566,7 @@ public class jClientC4 {
         
         return ysensor;
     }
-
+    //parede de cima quando olhamos para cima
     public double coordParedeFrenteHorizontal(double xcalculado){
         int xcalculado2= (int) xcalculado;
         if(xcalculado2%2==0){
@@ -571,7 +574,7 @@ public class jClientC4 {
             else return (double) (xcalculado2-1);
         }else{
             if(nivel()==1) return (double) (xcalculado2+2);
-            else return (double) (xcalculado2-2);
+            else return (double) (xcalculado2);
         }
     }
     
@@ -579,11 +582,11 @@ public class jClientC4 {
     public double coordParedeFrenteVertical(double ycalculado){
         int ycalculado2= (int) ycalculado;
         if(ycalculado2%2==0){
-            if(nivel()==1) return (double) (ycalculado2+2); 
-            else return (double) (ycalculado2-2);
-        }else{
-            if(nivel()==1) return (double) (ycalculado2+1);
+            if(nivel()==1) return (double) (ycalculado2+1); 
             else return (double) (ycalculado2-1);
+        }else{
+            if(nivel()==1) return (double) (ycalculado2+2);
+            else return (double) (ycalculado2);
         }
     }
 
@@ -638,10 +641,12 @@ public class jClientC4 {
     public void goAhead(){ //yr -> y inicial -> funcao de andar para a frente
         double deltaY = next.getY() - y; //Erro do Y
         double deltaX = next.getX() - x; //Erro do X
+        //System.out.println("deltaY -> " + deltaY);
+        //System.out.println("deltaX -> " + deltaX + "x -> " + x);
+        
         double l, r;
         double k = 0.75;
-       // x=coordsAntigas.getLast().getX()+Math.cos(compass);
-       // y=coordsAntigas.getLast().getY()+Math.cos(compass);
+        
         if(Eixo()){ // ele esta virado na horizontal
             l =0.1 - k * deltaY * nivel(); //nivel corresponde a ser + ou - no eixo
             r =0.1 - k * -deltaY * nivel(); // Valor maximo de velocidade menos 
@@ -650,8 +655,8 @@ public class jClientC4 {
             l =0.1 - k * -deltaX * nivel(); //nivel corresponde a ser + ou - no eixo
             r =0.1 - k * deltaX * nivel(); //
         }
-        //System.out.println("Andar para frente -> " + "l -> " + l + " r-> " + r );
-        
+        System.out.println("Andar para frente -> " + "l -> " + l + " r-> " + r );
+
         cif.DriveMotors(l, r);
        updateAll(l,r);
     }
@@ -730,20 +735,8 @@ public class jClientC4 {
             else
                 addToMap(coordDir(),"-");
         }else{
-           /* if(ground>=0){
-                String auxValFin =  Integer.toString(ground);
-                //vetor vaux = new vetor(objetivos[ground].getX(),objetivos[ground].getY());
-                //int aux = Fcont(vaux);
-                //System.out.println("ENTREI" + auxValFin);
-                
-                addToMap(coord2Dir(), auxValFin);
-            }else{
-                System.out.println("COISO");*/
-                addToMap(coord2Dir(), "X");
-                
-          //  }
-
-           addToMap(coordDir(), "X");
+            addToMap(coord2Dir(), "X");
+            addToMap(coordDir(), "X");
             pd.setXY(coord2Dir());
             if(!AntContem(pd)){
                 localViz.add(pd);
@@ -756,18 +749,7 @@ public class jClientC4 {
             else 
                 addToMap(coordEsq(),"-");
         }else{
-            /*if(ground>=0){
-               // vetor vaux = new vetor(objetivos[ground].getX(),objetivos[ground].getY());
-                //int aux = Fcont(vaux);
-                System.out.println("ENTREI" + Integer.toString(ground));
-                
-                addToMap(coord2Esq(), "A");
-                //addToMap(coordEsq(), Integer.toString(ground));
-            }else{
-                System.out.println("COISO");*/
-                addToMap(coord2Esq(), "X");
-                 
-           // }
+           addToMap(coord2Esq(), "X");
            addToMap(coordEsq(), "X");
             pe.setXY(coord2Esq());
             if(!AntContem(pe)) {
@@ -781,18 +763,8 @@ public class jClientC4 {
             else
                 addToMap(coordFrente(),"-");
         }else{
-          /*  if(ground>=0){
-                //vetor vaux = new vetor(objetivos[ground].getX(),objetivos[ground].getY());
-                //int aux = Fcont(vaux);
-                System.out.println("ENTREI" + Integer.toString(ground));
-                addToMap(coord2Frente(), "A");
-              //  addToMap(coordFrente(), Integer.toString(ground));
-            }else{
-                System.out.println("COISO");*/
-                addToMap(coord2Frente(), "X");
-               
-           // }
-             addToMap(coordFrente(), "X");
+            addToMap(coord2Frente(), "X");
+            addToMap(coordFrente(), "X");
             pf.setXY(coord2Frente());
             if(!AntContem(pf)){
                 localViz.add(pf);
@@ -805,19 +777,8 @@ public class jClientC4 {
             else
                 addToMap(coordTras(),"-");
         }else{
-           /* if(ground>=0){
-               // vetor vaux = new vetor(objetivos[ground].getX(),objetivos[ground].getY());
-               // int aux = Fcont(vaux);
-               System.out.println("ENTREI" + Integer.toString(ground));
-                
-                addToMap(coord2Tras(), "A");
-               // addToMap(coordTras(), Integer.toString(ground));
-            }else{
-                System.out.println("COISO");*/
-                addToMap(coord2Tras(), "X");
-               
-           // }
-             addToMap(coordTras(), "X");
+            addToMap(coord2Tras(), "X");
+            addToMap(coordTras(), "X");
             pt.setXY(coord2Tras());
             if(!AntContem(pt)){
                 if (!visitaveis.contains(pd))visitaveis.add(pt);
@@ -826,7 +787,9 @@ public class jClientC4 {
         // quando visitar tudo ou se o clock estiver quase acabar
         if(visitaveis.isEmpty() || cif.GetTime()> 4990){
             endS=true;
-            } 
+        } 
+
+                
 //--------------------- calcular a posicao seguinte--------------------------------
         else{        
             if(localViz.size()==0){ 
@@ -844,7 +807,7 @@ public class jClientC4 {
             if(compass_goal==-270) compass_goal=90;
             arrendAngulo();
         }
-
+        writeMap();
         //System.out.println("Compass_goal antes do ArrendAngulo: "+ compass_goal);
         System.out.println("Mapping decode next x= "+next.getX()+" y= "+next.getY()+" compass_goal= "+compass_goal + " compass= " + compass);          
     }
