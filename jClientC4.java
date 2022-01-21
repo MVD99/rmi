@@ -21,7 +21,8 @@
 
 /*
     Objetivos a atingir:
-    - adicionar funçoes do X, Y, Z
+    - Corrigir funções Sides e valueX/Y
+    - Perceber porque é que o x e o y estão muito superiores aos reais
 
 relatorio: 
 
@@ -337,11 +338,10 @@ public class jClientC4 {
                     break;
 
                 case END:
-                   
                     if(cif.GetFinished()){ //verificar se deu finish
+                        cif.DriveMotors(0.0,0.0); //adicionar voltar ao 0,0
                         System.exit(0);
                     }
-                    cif.DriveMotors(0.0,0.0);
                     writeMap();
                     writeCaminho(); 
                     cif.Finish();
@@ -401,10 +401,10 @@ public class jClientC4 {
         
         if(Eixo()){ //se tiver na horizontal
             xsensor = valueX(xcalculado);
-            //ysensor = valueYSides(ycalculado); //ajusta o y com os sensores de lado
+            ysensor = valueYSides(ycalculado); //ajusta o y com os sensores de lado
             ysensor=ycalculado;
         }else if(!Eixo()){ //se tiver na vertical
-            //xsensor =valueXSides(xcalculado); //ajusta o x com os sensores de lado
+            xsensor =valueXSides(xcalculado); //ajusta o x com os sensores de lado
             ysensor = valueY(ycalculado);
             xsensor = xcalculado;
         }
@@ -413,8 +413,8 @@ public class jClientC4 {
         y=(ycalculado*0.7+ysensor*0.3);
         //x = xcalculado;
         //y=ycalculado;
-        System.out.println("xsensor -> " + xsensor + " xcalculado -> " + xcalculado + " media x -> " + x);
-        System.out.println("ysensor -> " + ysensor + " ycalculado -> " + ycalculado + " media y -> " + y);
+       // System.out.println("xsensor -> " + xsensor + " xcalculado -> " + xcalculado + " media x -> " + x);
+       // System.out.println("ysensor -> " + ysensor + " ycalculado -> " + ycalculado + " media y -> " + y);
         xlast=x;
         ylast=y;  
          
@@ -641,21 +641,29 @@ public class jClientC4 {
     public void goAhead(){ //yr -> y inicial -> funcao de andar para a frente
         double deltaY = next.getY() - y; //Erro do Y
         double deltaX = next.getX() - x; //Erro do X
-        //System.out.println("deltaY -> " + deltaY);
-        //System.out.println("deltaX -> " + deltaX + "x -> " + x);
-        
+
+        if(deltaX>0.18) deltaX=0.18;
+        else if (deltaX<-0.18) deltaX=-0.18;
+        if(deltaY>0.18) deltaY=0.18;
+        else if(deltaY<-0.18) deltaY=-0.18;
         double l, r;
-        double k = 0.75;
+        double k = 0.5;
         
+        System.out.println("deltaY -> " + deltaY +" y -> " + y);
+        System.out.println("deltaX -> " + deltaX + " x -> " + x);
+
         if(Eixo()){ // ele esta virado na horizontal
+            System.out.println("Usei o deltaY");
             l =0.1 - k * deltaY * nivel(); //nivel corresponde a ser + ou - no eixo
             r =0.1 - k * -deltaY * nivel(); // Valor maximo de velocidade menos 
         }
         else{ //robo no eixo veritcal
+            System.out.println("Usei o deltaX");
             l =0.1 - k * -deltaX * nivel(); //nivel corresponde a ser + ou - no eixo
             r =0.1 - k * deltaX * nivel(); //
         }
-        System.out.println("Andar para frente -> " + "l -> " + l + " r-> " + r );
+        System.out.println("l-> "+l+" r-> "+r);
+        System.out.println("---------------------------");
 
         cif.DriveMotors(l, r);
        updateAll(l,r);
