@@ -145,7 +145,7 @@ public class jClientC4 {
 
     ciberIF cif;
     Map map;
-    enum State {GA, RL, RR, INV, WAIT, END}
+    enum State {GA, RL, RR, INV, WAIT, COLLISION, END}
 
     public static void main(String[] args) throws IOException{
 
@@ -282,15 +282,13 @@ public class jClientC4 {
 
             if(cif.IsBeaconReady(beaconToFollow))
                     beacon = cif.GetBeaconSensor(beaconToFollow);
-            //System.out.println("\n Measures: ir0=" + irSensor0 + " ir1=" + irSensor1 + " ir2=" + irSensor2 + " ir3="+ irSensor3+"\n" + "bussola=" + compass + " X=" + x + " Y=" + y);
 
             if(targetReached()){
                 System.out.println("\n Measures: ir0=" + irSensor0 + " ir1=" + irSensor1 + " ir2=" + irSensor2 + " ir3="+ irSensor3+"\n" + "bussola=" + compass + " X=" + x + " Y=" + y);
+                System.out.println("x real: " + xgps+" y real: "+ygps);
                 System.out.println("f: "+ParedeFrente()+" esq: "+ParedeEsquerda()+" dir: "+ParedeDireita()+" tras: "+ParedeTras());
                 System.out.println("init: "+init+" targetReached? "+targetReached() + "\n");
             }
-            //funcao geral: detetar se está no centro, se sim corre mapping e calcular next, se nao manda andar para onde é preciso
-            //andar implica ou curvas ou ahead
 
             state = Estados();
             switch(state) { 
@@ -343,6 +341,18 @@ public class jClientC4 {
                     updateAll(0,0);
                     break;
 
+                case COLLISION:
+                    if(irSensor0>20){
+                        next.x=coordsAntigas.getLast().getX();
+                        next.y=coordsAntigas.getLast().getY();
+                        collisionCompass();
+                        goInv();
+                    }
+                    //System.out.println("COLLISION next x= "+next.getX()+" y= "+next.getY()+" compass_goal= "+compass_goal + " compass= " + compass);  
+                    //System.out.println("0 -> " + irSensor0 + " 1-> " + irSensor1 + " 2-> " + irSensor2 + " 3-> " +irSensor3);
+                    System.out.println("COLIDI......");
+                    break;
+                    
                 case END:
                     if(cif.GetFinished()){ //verificar se deu finish
                         cif.DriveMotors(0.0,0.0); //adicionar voltar ao 0,0
@@ -360,6 +370,9 @@ public class jClientC4 {
 
     public State Estados() throws IOException{
         if(cif.GetStartButton()){
+            if(cif.GetBumperSensor()){
+                return State.COLLISION;
+            }
             if(init==true){
                 init=false;
                 return State.GA;
@@ -368,6 +381,7 @@ public class jClientC4 {
                 endS=false;        
                 return State.END;
             }
+            
             if(compass_goal == -90){
                 if(compass_goal-compass>-15 && compass_goal-compass<=15) return State.GA;
                 if(compass>-90 && compass<90) return State.RR;
@@ -393,6 +407,14 @@ public class jClientC4 {
         }
         return State.WAIT;
     }
+
+
+    public void collisionCompass(){
+        if(compass_goal==0) compass_goal=180;
+        else if(compass_goal==180) compass_goal=0;
+        else if(compass_goal==90 || compass_goal==-90) compass_goal=(-1)*compass_goal;
+        else compass_goal=0; 
+    }
     
     public void updateAll(double l, double r){ //update the values after a movement
         double outr = (r+outrLast)/2;
@@ -403,31 +425,50 @@ public class jClientC4 {
         outrLast = outr;
         outlLast = outl;
         compassLast=compass;
-  
-        double xsensor = 0, ysensor = 0;
+        double xsensor = xcalculado;
+        double ysensor = ycalculado; 
+        if(Eixo()){
+            if( irSensor0 >= 3 || irSensor3 >= 3){
+                xsensor = valueX(xcalculado);
+            }
+            if ( irSensor1 >= 3 || irSensor2 >= 3){
+                //ysensor = valueYSides(ycalculado);
+                y=ycalculado;
+            }
+        }
+        else{
+            if( irSensor0 >= 3 || irSensor3 >= 3){
+                ysensor = valueY(ycalculado);
+            }
+            if ( irSensor1 >= 3 || irSensor2 >= 3){
+               // xsensor = valueXSides(xcalculado);
+               x=xcalculado;
+            }
+        }
         
-        if(Eixo()){ //se tiver na horizontal
-            xsensor = valueX(xcalculado);      //ajusta o X com os sensores da frente e tras
-            //ysensor = valueYSides(ycalculado); //ajusta o y com os sensores de lado
-            ysensor=ycalculado;
-        }else if(!Eixo()){ //se tiver na vertical
-            xsensor =valueXSides(xcalculado); //ajusta o x com os sensores de lado
-            ysensor = valueY(ycalculado);     //ajusta o y com os sensores da frente e tras
-            //xsensor = xcalculado;
-        }
+        
+         /*if(Eixo()){ //se tiver na horizontal
+             xsensor = valueX(xcalculado);      //ajusta o X com os sensores da frente e tras
+             //ysensor = valueYSides(ycalculado); //ajusta o y com os sensores de lado
+             ysensor=ycalculado;
+         }else if(!Eixo()){ //se tiver na vertical
+             xsensor =valueXSides(xcalculado); //ajusta o x com os sensores de lado
+             ysensor = valueY(ycalculado);     //ajusta o y com os sensores da frente e tras
+             //xsensor = xcalculado;
+         }
        
-        if(Math.abs(xsensor-xcalculado)>2){
+         if(Math.abs(xsensor-xcalculado)>2){
             xsensor = xcalculado;
-        }
+         }
         if(Math.abs(ysensor-ycalculado)>2){
-            ysensor = ycalculado;
-        }
-        //x=(xcalculado*0.9+xsensor*0.1);       
-        //y=(ycalculado*0.9+ysensor*0.1);
-        x=xcalculado;
-        y=ycalculado;
-        System.out.println("xcalc= "+xcalculado+" xsensor= "+xsensor+ " xmedio= "+x +" xREAL= "+xgps);
-        System.out.println("ycalc= " + ycalculado + " ysensor= " + ysensor+ " ymedio= " + y +" yREAL= " +ygps);
+             ysensor = ycalculado;
+        }*/
+        x=(xcalculado+xsensor)/2;       
+        y=(ycalculado+ysensor)/2;
+        //x=xcalculado;
+        //y=ycalculado;
+        System.out.println("xcalc= "+xcalculado+" xsensor= "+xsensor+" xmedio= "+x +" xREAL= "+xgps);
+        System.out.println("ycalc= " + ycalculado + " ysensor= "+ ysensor + " ymedio= " + y +" yREAL= " +ygps);
         //System.out.println(irSensor0 + " " + irSensor1 + " " + irSensor2 + " " + irSensor3);
       
         xlast=xcalculado;
@@ -440,59 +481,119 @@ public class jClientC4 {
         System.out.println("ValueX");
         if(!ParedeFrente() && !ParedeTras()) return xcalculado;
         else if(ParedeFrente() && ParedeTras()){ //com os dois sensores
-            double paredeF=coordParedeFrenteVertical(xcalculado);
+            double paredeF = 0;
+            if(nivel()==1) paredeF = coordParedeFrenteVertical(xcalculado);
+            else paredeF=coordParedeTrasVertical(xcalculado);
             double distF=1/irSensor0;
-            double xsensorF= paredeF - distF - 0.5;
-
-            double paredeT=coordParedeTrasVertical(xcalculado);
+            double xsensorF=  paredeF - ((distF + 0.5)*nivel());
+            
+            double paredeT=0;
+            if(nivel()==1)paredeT=coordParedeTrasVertical(xcalculado);
+            else paredeT=coordParedeFrenteVertical(xcalculado);
             double distT=1/irSensor3;
-            double xsensorT= paredeT + distT + 0.5;
-
-            xsensor = (xsensorF+xsensorT)/2;
-            System.out.println("ValueX PF e PT");
+            double xsensorT= paredeT + ((distT + 0.5) * nivel());
+            
+            xsensor = (xsensorF/xsensorT)/2;
+            System.out.println("ValueX PF e PT paredeF: "+paredeF+" distF: "+distF + "paredeF: "+paredeF+" distF: "+distF);
         }
         else if(ParedeFrente() && !ParedeTras()){ //com frente
-            double parede=coordParedeFrenteVertical(xcalculado);
+            double parede=0;
+            if(nivel()==1)parede = coordParedeFrenteVertical(xcalculado);
+            else parede=coordParedeTrasVertical(xcalculado);
             double dist=1/irSensor0;
-            xsensor= parede - dist - 0.5;
-            System.out.println("ValueX PF !PT");
+            xsensor = parede - ((dist + 0.5)*nivel());
+            System.out.println("ValueX PF !PT parede: "+parede+" dist: "+dist);
         }
         else if(!ParedeFrente() && ParedeTras()){ //com tras
-            double parede=coordParedeTrasVertical(xcalculado);
+            double parede=0;
+            if(nivel()==1)parede=coordParedeTrasVertical(xcalculado);
+            else parede=coordParedeFrenteVertical(xcalculado);
             double dist=1/irSensor3;
-            xsensor= parede + dist + 0.5;
-            System.out.println("ValueX !PF PT");
+            xsensor = parede + ((dist + 0.5) * nivel());
+            System.out.println("ValueX !PF PT parede: "+parede+" dist: "+dist );
         }
         else xsensor = xcalculado;
         return xsensor;
     }
 
+    public double valueY(double ycalculado){ //ver esta
+        double ysensor;
+        System.out.println("ValueY");
+        if(!ParedeFrente() && !ParedeTras())return ycalculado;
+        else if(ParedeFrente() && ParedeTras()){ //com os dois sensores
+            double paredeF=0;
+            double parede=0;
+            if(nivel()==1) paredeF=coordParedeFrenteHorizontal(ycalculado);
+            else paredeF=coordParedeTrasHorizontal(ycalculado);
+            double distF=1/irSensor0;
+            double ysensorF= paredeF - ((distF + 0.5)*nivel());
+            
+            double paredeT=0;
+            if(nivel()==1) paredeT=coordParedeTrasHorizontal(ycalculado);
+            else paredeT=coordParedeFrenteHorizontal(ycalculado); 
+            double distT=1/irSensor3;
+            double ysensorT= paredeT + ((distT + 0.5) * nivel());
+           
+            System.out.println("ValueX PF e PT paredeF: "+paredeF+" distF: "+distF + "paredeF: "+paredeF+" distF: "+distF);
+            ysensor = (ysensorF+ysensorT)/2;
+        }
+        else if(ParedeFrente() && !ParedeTras()){ //com frente
+            double parede=0;
+            if(nivel()==1) parede=coordParedeFrenteHorizontal(ycalculado);
+            else parede=coordParedeTrasHorizontal(ycalculado);
+            double dist=1/irSensor0;
+            ysensor= parede - dist - 0.5;
+            if(parede<0){
+                ysensor =  parede - (dist + 0.5)*nivel();
+            }
+            System.out.println("ValueY PF !PT parede: "+parede+" dist: "+dist);
+        }
+        else if(!ParedeFrente() && ParedeTras()){ //com tras
+            double parede=0;
+            if(nivel()==1) parede=coordParedeTrasHorizontal(ycalculado);
+            else parede=coordParedeFrenteHorizontal(ycalculado);            
+            double dist=1/irSensor3;
+            ysensor = parede + ((dist + 0.5) * nivel());
+            System.out.println("ValueY !PF PT parede: "+parede+" dist: "+dist);
+        }
+        else ysensor = ycalculado;
+        return ysensor;
+    }
+
+
     public double valueXSides(double xcalculado){ //usado quando ele esta na vertical
         double xsensor;
         System.out.println("XSides");
-        if(!ParedeEsquerda() && !ParedeDireita()){
-            System.out.println("ValueX !PE !PD");
-            return xcalculado;
-              
-        }else if(ParedeEsquerda() && ParedeDireita()){
-            double paredeE = coordParedeTrasVertical(xcalculado);
+        if(!ParedeEsquerda() && !ParedeDireita())return xcalculado;
+        else if(ParedeEsquerda() && ParedeDireita()){
+            double paredeE=0;
+            if(nivel()==1) paredeE = coordParedeTrasVertical(xcalculado);
+            else paredeE = coordParedeFrenteVertical(xcalculado);
             double distE = 1/irSensor1;
-            double xsensorE = paredeE + distE + 0.5;
+            double xsensorE = paredeE + ((distE + 0.5)*nivel());
 
-            double paredeD = coordParedeFrenteVertical(xcalculado);
+            double paredeD=0;         
+            if(nivel()==1) paredeD = coordParedeFrenteVertical(xcalculado);
+            else  paredeD = coordParedeTrasVertical(xcalculado);
             double distD = 1/irSensor2;
-            double xsensorD = paredeD - distD - 0.5;
-            System.out.println("ValueX PE PD");
+            double xsensorD = paredeD - ((distD + 0.5)*nivel());
+            
             xsensor = (xsensorE + xsensorD)/2;
+            System.out.println("ValueX PE PD");
         }else if(ParedeEsquerda() && !ParedeDireita()){
-            double parede = coordParedeTrasVertical(xcalculado);
+            double parede=0;
+            if(nivel()==1) parede = coordParedeTrasVertical(xcalculado);
+            else  parede = coordParedeFrenteVertical(xcalculado);
             double dist = 1/irSensor1;
-            xsensor = parede + dist + 0.5;
-              System.out.println("ValueX PE !PD");
+            xsensor = parede + ((dist + 0.5)*nivel());
+
+            System.out.println("ValueX PE !PD");
         }else if(!ParedeEsquerda() && ParedeDireita()){
-            double parede = coordParedeFrenteVertical(xcalculado);
+            double parede=0;
+            if(nivel()==1) parede = coordParedeFrenteVertical(xcalculado);
+            else  parede = coordParedeTrasVertical(xcalculado);
             double dist = 1/irSensor2;
-            xsensor = parede - dist - 0.5;
+            xsensor = parede - ((dist + 0.5)*nivel());
             System.out.println("ValueX !PE PD");
         }else xsensor = xcalculado;
         
@@ -500,67 +601,39 @@ public class jClientC4 {
     }
 
     
-    public double valueY(double ycalculado){ //ver esta
-        double ysensor;
-        System.out.println("ValueY");
-        if(!ParedeFrente() && !ParedeTras()){ 
-             System.out.println("ValueY PF PT");
-             return ycalculado;
-        }
-        else if(ParedeFrente() && ParedeTras()){ //com os dois sensores
-            double paredeF=coordParedeFrenteHorizontal(ycalculado);
-            double distF=1/irSensor0;
-            double ysensorF= paredeF - distF - 0.5;
-
-            double paredeT=coordParedeTrasHorizontal(ycalculado);
-            double distT=1/irSensor3;
-            double ysensorT= paredeT + distT + 0.5;
-            System.out.println("ValueY PF PT");
-            ysensor = (ysensorF+ysensorT)/2;
-        }
-        else if(ParedeFrente() && !ParedeTras()){ //com frente
-            double parede=coordParedeFrenteHorizontal(ycalculado);
-            double dist=1/irSensor0;
-            ysensor= parede - dist - 0.5;
-            System.out.println("ValueY PF !PT -> " + irSensor0);
-        }
-        else if(!ParedeFrente() && ParedeTras()){ //com tras
-            double parede=coordParedeTrasHorizontal(ycalculado);
-            double dist=1/irSensor3;
-            ysensor= parede + dist + 0.5;
-             System.out.println("ValueY !PF PT");
-        }
-        else ysensor = ycalculado;
-        return ysensor;
-    }
-
     public double valueYSides (double ycalculado){ //usado quando ele esta horizontal
         double ysensor;
         System.out.println("YSides");
         if(!ParedeEsquerda() && !ParedeDireita()){
             return ycalculado;
         }else if(ParedeEsquerda() && ParedeDireita()){
-            double paredeE = coordParedeTrasHorizontal(ycalculado);
+            double paredeE = 0;
+            if(nivel()==1)paredeE = coordParedeTrasHorizontal(ycalculado);
+            else paredeE = coordParedeFrenteHorizontal(ycalculado);
             double distE = 1/irSensor1;
-            double ysensorE = paredeE + distE + 0.5;
-
-            double paredeD = coordParedeFrenteHorizontal(ycalculado);
+            double ysensorE = paredeE - ((distE + 0.5)*nivel());
+            double paredeD = 0;
+            if(nivel()==1)paredeD = coordParedeFrenteHorizontal(ycalculado);
+            else paredeD = coordParedeTrasHorizontal(ycalculado);
             double distD = 1/irSensor2;
-            double ysensorD = paredeD - distD - 0.5;
+            double ysensorD = paredeD + ((distD + 0.5)*nivel());
 
             ysensor = (ysensorE + ysensorD)/2;
             
         }else if(ParedeEsquerda() && !ParedeDireita()){
-            double parede = coordParedeTrasHorizontal(ycalculado);
+            double parede = 0;
+            if(nivel()==1)parede = coordParedeTrasHorizontal(ycalculado);
+            else parede = coordParedeFrenteHorizontal(ycalculado);
             double dist = 1/irSensor1;
-            ysensor = parede + dist + 0.5;
+            ysensor = parede - ((dist + 0.5)*nivel());
         }else if(!ParedeEsquerda() && ParedeDireita()){
-            double parede = coordParedeFrenteHorizontal(ycalculado);
+            double parede =0;
+            if(nivel()==1)parede = coordParedeFrenteHorizontal(ycalculado);
+            else parede = coordParedeTrasHorizontal(ycalculado);
             double dist = 1/irSensor2;
-            ysensor = parede - dist - 0.5;
+            ysensor = parede + ((dist + 0.5)*nivel());
         }else ysensor = ycalculado;
-        
-       
+
         return ysensor;
     }
    
@@ -573,7 +646,7 @@ public class jClientC4 {
             else return (double) (xcalculado2-1);
         }else{
             if(nivel()==1) return (double) (xcalculado2+2);
-            else return (double) (xcalculado2-2);
+            else return (double) (xcalculado2);
         }
     }
     
@@ -626,9 +699,7 @@ public class jClientC4 {
         double rot = 0.5 * deltaC;
         double l = -rot;
         double r = rot;
-      //  x=coordsAntigas.getLast().getX()+Math.cos(compass);
-       // y=coordsAntigas.getLast().getY()+Math.cos(compass);
-      //  System.out.println(" rodar para esquerda -> " + "l -> " + l + " r-> " + r);
+
         cif.DriveMotors(l, r);
         updateAll(l,r);
 
@@ -641,16 +712,11 @@ public class jClientC4 {
         double rot = 0.5 * deltaC;
         double l = rot;
         double r = -rot;
-       // x=coordsAntigas.getLast().getX()+Math.cos(compass);
-       // y=coordsAntigas.getLast().getY()+Math.cos(compass);
-      // System.out.println("rodar direita " + "l -> " + l + " r-> " + r);
         cif.DriveMotors(l, r);
         updateAll(l,r);
     }
 
-    public void goInv(){
-       // System.out.println("inverter");
-        
+    public void goInv(){        
         cif.DriveMotors(0.15,-0.15);
         updateAll(0.15,-0.15);
         
@@ -668,16 +734,12 @@ public class jClientC4 {
         double l, r;
         double k = 0.5;
         
-        //System.out.println("deltaY -> " + deltaY +" y -> " + y);
-        //System.out.println("deltaX -> " + deltaX + " x -> " + x);
 
         if(Eixo()){ // ele esta virado na horizontal
-           // System.out.println("Usei o deltaY");
             l =0.1 - k * deltaY * nivel(); //nivel corresponde a ser + ou - no eixo
             r =0.1 - k * -deltaY * nivel(); // Valor maximo de velocidade menos 
         }
         else{ //robo no eixo veritcal
-          //  System.out.println("Usei o deltaX");
             l =0.1 - k * -deltaX * nivel(); //nivel corresponde a ser + ou - no eixo
             r =0.1 - k * deltaX * nivel(); //
         }
@@ -850,13 +912,13 @@ public class jClientC4 {
         return viz;
     }
 
-//------------------------------------- MAPA MAPA MAPA -------------------------------------
+//------------------------------------- MAPA MAPA MAPA && PATH PATH PATH -----------------------------------------------
     public void fillMap(){ //chamada no estado init para encher o ARRAY do mapa com " "
         for(int i=0; i<28;i++){ //percorremos as linhas
             for (int j=0; j<56; j++){ //percorremos as colunas para cada linha
                 coords[i][j]=" ";
                 if(i==14 && j==28) {
-                    coords[i][j]= "I";                    
+                    coords[i][j]= "0";                    
                 }
             }
         }
