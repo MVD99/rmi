@@ -19,23 +19,6 @@
 */
 
 
-/*
-    Objetivos a atingir:
-    - Corrigir funções Sides e valueX/Y - Meter prints no X que obtemos nos sensores, calculado e x real!
-    - Perceber porque é que o x e o y estão muito superiores aos reais
-
-relatorio: 
-
--contexto do problema (qual o desafio) nas nossas palavras, apresentar a solucao para qualquer pessoa perceber
-
-    o problema que temos e este e tentamos fazer isto e aquilo....
-    que solucao escolhemos? vantagens e desvantagens
-    apresentar resultados(indicadores para medir o desempenho 
-    (colisoes, n medio que tem uma colisao, percentagem do mapa que imprimiu corretamente))...mostra os prints dos stores??? e os nossos resultados prints do mapa.txt e do vetor
-    introducao, metodologia,resultados, discusao (bom, mau, vale a pena nao vale a pena), conclusao e bibliografia
-
-quando terminar o projeto o rato tem que estar na posicao inicial, so depois fazer o finish...
-*/
 
 import java.beans.PersistenceDelegate;
 import java.io.*;
@@ -248,6 +231,10 @@ public class jClientC4 {
         nbeacons = cif.GetNumberOfBeacons();
         objetivos = new vetor[nbeacons]; 
         vetor aux = new vetor ();
+        File myObj = new File("mapa.txt");
+        myObj.createNewFile();
+        File myObj2 = new File("caminho.txt");
+        myObj2.createNewFile();
         while(true) {
             cif.ReadSensors(); 
             decide();
@@ -291,7 +278,6 @@ public class jClientC4 {
             }
 
             if(cif.GetTime()> 4950){
-                System.out.println("ENTREI NO FINAL");
                 endS=true;
             } 
             state = Estados();
@@ -346,7 +332,7 @@ public class jClientC4 {
                     break;
                
                 case COLLISION:
-                    
+                    System.out.println("COLIDI : " + cif.GetTime());
                     if(irSensor0>20){
                         if(!par(coordFrente()))
                             addToMapForced(coordFrente(),"|");
@@ -361,20 +347,31 @@ public class jClientC4 {
 
                     //System.out.println("COLLISION next x= "+next.getX()+" y= "+next.getY()+" compass_goal= "+compass_goal + " compass= " + compass);  
                     //System.out.println("0 -> " + irSensor0 + " 1-> " + irSensor1 + " 2-> " + irSensor2 + " 3-> " +irSensor3);
-                    System.out.println("COLIDI......");
                     break;
                     
                 case END:
-                    System.out.println("ACABOU O PROGRAMA");
+                    System.out.println("ACABOU");
                     if(cif.GetFinished()){ //verificar se deu finish
+                        if(checkPath()){
+                            writeCaminho();
+                        }
                         System.exit(0);
                     }
                     writeMap();
-                    writeCaminho(); 
                     cif.Finish();
                     break;
             }
             return;
+    }
+
+    public boolean checkPath(){ //true se nenhum a null
+        boolean check=true;
+        for (int i = 0;i<objetivos.length ; i++){
+            if(objetivos[i] == null){
+                check=false;
+            }
+        }
+        return check;
     }
 
     public State Estados() throws IOException{
@@ -445,46 +442,53 @@ public class jClientC4 {
         compassLast=compass;
         double xsensor = xcalculado;
         double ysensor = ycalculado; 
-        // if(Eixo()){
-        //     if( irSensor0 >= 3 || irSensor3 >= 3){
-        //         xsensor = valueX(xcalculado);
-        //     }
-        //    /* if ( irSensor1 >= 3 || irSensor2 >= 3){
-        //         //ysensor = valueYSides(ycalculado);
-        //         y=ycalculado;
-        //     }*/
-        // }
-        // else{
-        //     if( irSensor0 >= 3 || irSensor3 >= 3){
-        //         ysensor = valueY(ycalculado);
-        //     }
-        //    /* if ( irSensor1 >= 3 || irSensor2 >= 3){
-        //        // xsensor = valueXSides(xcalculado);
-        //        x=xcalculado;
-        //     }*/
-        // }
-        if(targetReached()){
+       /* if(Eixo()){
+             if( irSensor0 >= 3 || irSensor3 >= 3){
+                 xsensor = valueX(xcalculado);
+             }
+            if ( irSensor1 >= 3 || irSensor2 >= 3){
+                 ysensor = valueYSides(ycalculado);
+               
+            }
+            
+        }else{
+            if( irSensor0 >= 3 || irSensor3 >= 3){
+                ysensor = valueY(ycalculado);
+            }
+            if ( irSensor1 >= 3 || irSensor2 >= 3){
+                xsensor = valueXSides(xcalculado);
+               
+            
+            }
+        }*/
+        
+        
+        /*if(targetReached()){
             if(Eixo()){
                 xsensor = valueX(xcalculado);
+                ysensor = valueYSides(ycalculado);
             }
             else{
                 ysensor = valueY(ycalculado);
+                xsensor = valueXSides(xcalculado);
             }
-        }
+        }*/
+        
         
 
         //x=(xcalculado*0.8+xsensor*0.2);       
         //y=(ycalculado*0.8+ysensor*0.2);
         x=xcalculado;
         y=ycalculado;
-        //System.out.println("xcalc= "+xcalculado+" xsensor= "+xsensor+" xmedio= "+x +" xREAL= "+xgps);
-      //  System.out.println("ycalc= " + ycalculado + " ysensor= "+ ysensor + " ymedio= " + y +" yREAL= " +ygps);
+       // System.out.println("xcalc= "+xcalculado+" xsensor= "+xsensor+" xmedio= "+x +" xREAL= "+xgps);
+       // System.out.println("ycalc= " + ycalculado + " ysensor= "+ ysensor + " ymedio= " + y +" yREAL= " +ygps);
         //System.out.println(irSensor0 + " " + irSensor1 + " " + irSensor2 + " " + irSensor3);
       
         xlast=xcalculado;
         ylast=ycalculado;  
          
     }
+
 
     public double valueX(double xcalculado){
         double xsensor;
@@ -884,9 +888,7 @@ public class jClientC4 {
             }
         }
         // quando visitar tudo ou se o clock estiver quase acabar
-        System.out.println("fgvjnmkdddddddd" + cif.GetTime());
         if(visitaveis.isEmpty() || cif.GetTime()> 4900){
-            System.out.println("ENTREI NO FINAL");
             endS=true;
         } 
 
@@ -1126,11 +1128,11 @@ public class jClientC4 {
         return false;
     }
     public boolean ParedeDireita(){
-        if(irSensor2>=1.3) return true;
+        if(irSensor2>=1) return true;
         return false;
     }
     public boolean ParedeEsquerda(){
-        if(irSensor1>=1.3) return true;
+        if(irSensor1>=1) return true;
         return false;
     }
 
